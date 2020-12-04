@@ -25,8 +25,8 @@ from utils import SpectralNormalization, ExponentialMovingAverage
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
-imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
-#imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
+#imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
+imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
 
 

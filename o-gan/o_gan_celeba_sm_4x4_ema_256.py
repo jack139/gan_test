@@ -1,8 +1,10 @@
 #! -*- coding: utf-8 -*-
+import os
+os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 import numpy as np
 import scipy as sp
-from scipy import misc
+#from scipy import misc
 import glob
 import imageio
 from keras.models import Model
@@ -11,6 +13,7 @@ from keras import backend as K
 from keras.optimizers import RMSprop
 from keras.callbacks import Callback
 from keras.initializers import RandomNormal
+from PIL import Image
 import os,json
 import warnings
 warnings.filterwarnings("ignore") # 忽略keras带来的满屏警告
@@ -20,24 +23,29 @@ if not os.path.exists('samples'):
     os.mkdir('samples')
 
 
-imgs = glob.glob('../../CelebA-HQ/train/*.png')
+imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
 img_dim = 256
 z_dim = 256
 num_layers = int(np.log2(img_dim)) - 3
 max_num_channels = img_dim * 8
 f_size = img_dim // 2**(num_layers + 1)
-batch_size = 48
+batch_size = 12
 
 
 def imread(f, mode='gan'):
-    x = misc.imread(f, mode='RGB')
+    #x = misc.imread(f, mode='RGB')
+    x = imageio.imread(f, as_gray=False, pilmode="RGB")
     if mode == 'gan':
-        x = misc.imresize(x, (img_dim, img_dim))
+        #x = misc.imresize(x, (img_dim, img_dim))
+        im = Image.fromarray(x)
+        x = np.array(im.resize((img_dim, img_dim), Image.BICUBIC))
         x = x.astype(np.float32)
         return x / 255 * 2 - 1
     elif mode == 'fid':
-        x = misc.imresize(x, (299, 299))
+        #x = misc.imresize(x, (299, 299))
+        im = Image.fromarray(x)
+        x = np.array(im.resize((299, 299), Image.BICUBIC))
         return x.astype(np.float32)
 
 
@@ -181,10 +189,12 @@ qp_loss = 0.25 * t1_loss[:, 0]**2 / K.mean((x_real - x_fake_ng)**2, axis=[1, 2, 
 
 train_model.add_loss(K.mean(t1_loss + t2_loss - 1. * z_corr) + K.mean(qp_loss))
 train_model.compile(optimizer=RMSprop(1e-4, 0.99))
-train_model.metrics_names.append('t_loss')
-train_model.metrics_tensors.append(K.mean(t1_loss))
-train_model.metrics_names.append('z_corr')
-train_model.metrics_tensors.append(K.mean(z_corr))
+#train_model.metrics_names.append('t_loss')
+#train_model.metrics_tensors.append(K.mean(t1_loss))
+train_model.add_metric(K.mean(t1_loss), 't_loss')
+#train_model.metrics_names.append('z_corr')
+#train_model.metrics_tensors.append(K.mean(z_corr))
+train_model.add_metric(K.mean(z_corr), 'z_loss')
 
 # 检查模型结构
 train_model.summary()
@@ -205,7 +215,8 @@ class ExponentialMovingAverage:
         self.initialize()
         for w1, w2 in zip(self.ema_weights, self.model.weights):
             op = K.moving_average_update(w1, w2, self.momentum)
-            self.model.metrics_updates.append(op)
+            #self.model.metrics_updates.append(op)
+            self.model.add_metric(op, 'ema')
     def initialize(self):
         """ema_weights初始化跟原模型初始化一致。
         """

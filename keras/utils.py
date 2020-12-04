@@ -72,7 +72,7 @@ class ExponentialMovingAverage:
         for w1, w2 in zip(self.ema_weights, self.model.weights):
             op = K.moving_average_update(w1, w2, self.momentum)
             #self.model.metrics_updates.append(op)
-            self.model.add_metric(op, 'ema_metrics') # 自定义的 metrics
+            self.model.add_metric(op, 'ema') # 自定义的 metrics
     def initialize(self):
         """ema_weights初始化跟原模型初始化一致。
         """
