@@ -1,5 +1,6 @@
 # coding=utf-8
-# 实现基于“谱归一化”的Keras代码，实现方式是添加kernel_constraint
+# 在普通的GAN的判别器加入了谱归一化
+# 实现方式是添加kernel_constraint
 # 注意使用代码前还要修改Keras源码，修改
 # keras/engine/base_layer.py的Layer对象的add_weight方法
 # 修改方法见 https://kexue.fm/archives/6051#Keras%E5%AE%9E%E7%8E%B0
@@ -18,7 +19,7 @@ from keras import backend as K
 from keras.optimizers import Adam
 import os
 from PIL import Image
-from utils import SpectralNormalization
+from utils import SpectralNormalization, ExponentialMovingAverage
 
 
 if not os.path.exists('samples'):
@@ -77,7 +78,7 @@ for i in range(3):
     x = LeakyReLU()(x)
 
 x = Flatten()(x)
-x = SpectralNormalization(Dense(1, use_bias=False))(x)
+x = SpectralNormalization(Dense(1, use_bias=False, activation='sigmoid'))(x)
 
 d_model = Model(x_in, x)
 d_model.summary()
@@ -122,7 +123,7 @@ x_fake_score = d_model(x_fake)
 d_train_model = Model([x_in, z_in],
                       [x_real_score, x_fake_score])
 
-d_loss = K.mean(x_fake_score - x_real_score)
+d_loss = K.mean(- K.log(x_real_score + 1e-9) - K.log(1 - x_fake_score + 1e-9))
 d_train_model.add_loss(d_loss)
 d_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
@@ -133,8 +134,12 @@ d_model.trainable = False
 x_fake_score = d_model(g_model(z_in))
 
 g_train_model = Model(z_in, x_fake_score)
-g_train_model.add_loss(K.mean(- x_fake_score))
+g_train_model.add_loss(K.mean(- K.log(x_fake_score + 1e-9)))
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
+
+# EMA
+EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
+EMAer_g_train.inject() # 在模型compile之后执行
 
 
 # 检查模型结构
@@ -164,15 +169,17 @@ batch_size = 64
 img_generator = data_generator(batch_size)
 
 for i in range(total_iter):
-    for j in range(5):
+    for j in range(1):
         z_sample = np.random.randn(batch_size, z_dim)
         d_loss = d_train_model.train_on_batch(
             [next(img_generator), z_sample], None)
-    for j in range(1):
+    for j in range(2):
         z_sample = np.random.randn(batch_size, z_dim)
         g_loss = g_train_model.train_on_batch(z_sample, None)
     if i % 10 == 0:
         print('iter: %s, d_loss: %s, g_loss: %s' % (i, d_loss, g_loss))
     if i % iters_per_sample == 0:
+        EMAer_g_train.apply_ema_weights() # 将EMA的权重应用到模型中
         sample('samples/test_%s.png' % i)
         g_train_model.save_weights('./g_train_model.weights')
+        EMAer_g_train.reset_old_weights() # 继续训练之前，要恢复模型旧权重
