@@ -15,8 +15,11 @@ batch_norm = partial(slim.batch_norm, decay=0.9, scale=True, epsilon=1e-5, updat
 ln = slim.layer_norm
 
 
-def generator(z, dim=64, reuse=True, training=True):
-    bn = partial(batch_norm, is_training=training)
+def generator(z, dim=64, reuse=True, training=True, with_bn=True):
+    if with_bn:
+        bn = partial(batch_norm, is_training=training)
+    else:
+        bn = lambda xx: xx # replace bn with an identity function
     dconv_bn_relu = partial(dconv, normalizer_fn=bn, activation_fn=relu, biases_initializer=None)
     fc_bn_relu = partial(fc, normalizer_fn=bn, activation_fn=relu, biases_initializer=None)
 
@@ -30,8 +33,11 @@ def generator(z, dim=64, reuse=True, training=True):
         return img
 
 
-def discriminator(img, dim=64, reuse=True, training=True):
-    bn = partial(batch_norm, is_training=training)
+def discriminator(img, dim=64, reuse=True, training=True, with_bn=True):
+    if with_bn:
+        bn = partial(batch_norm, is_training=training)
+    else:
+        bn = lambda xx: xx # replace bn with an identity function
     conv_bn_lrelu = partial(conv, normalizer_fn=bn, activation_fn=lrelu, biases_initializer=None)
 
     with tf.variable_scope('discriminator', reuse=reuse):

@@ -13,23 +13,29 @@ epoch = 50
 batch_size = 64
 lr = 0.0002
 z_dim = 100
-gpu_id = 3
+with_bn = True # whether us BN layer
+
+
+gpu_id = 0
 
 """ data """
 # you should prepare your own data in ./data/img_align_celeba
 # celeba original size is [218, 178, 3]
+origin_height = 250 #  CASIA-maxpy-clean's size is  250*250
+origin_with = 250
 
 
 def preprocess_fn(img):
-    crop_size = 108
+    crop_size = 200 # use the center part
     re_size = 64
-    img = tf.image.crop_to_bounding_box(img, (218 - crop_size) // 2, (178 - crop_size) // 2, crop_size, crop_size)
+    img = tf.image.crop_to_bounding_box(img, (origin_height - crop_size) // 2, (origin_with - crop_size) // 2, crop_size, crop_size)
     img = tf.to_float(tf.image.resize_images(img, [re_size, re_size], method=tf.image.ResizeMethod.BICUBIC)) / 127.5 - 1
     return img
 
-#img_paths = glob.glob('./data/img_align_celeba/*.jpg')
-img_paths = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
-data_pool = utils.DiskImageData(img_paths, batch_size, shape=[218, 178, 3], preprocess_fn=preprocess_fn)
+
+img_paths = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
+#img_paths = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
+data_pool = utils.DiskImageData(img_paths, batch_size, shape=[origin_height, origin_with, 3], preprocess_fn=preprocess_fn)
 
 
 """ graphs """
@@ -44,11 +50,11 @@ with tf.device('/gpu:%d' % gpu_id):
     z = tf.placeholder(tf.float32, shape=[None, z_dim])
 
     # generate
-    fake = generator(z, reuse=False)
+    fake = generator(z, reuse=False, with_bn=with_bn)
 
     # dicriminate
-    r_logit = discriminator(real, reuse=False)
-    f_logit = discriminator(fake)
+    r_logit = discriminator(real, reuse=False, with_bn=with_bn)
+    f_logit = discriminator(fake, with_bn=with_bn)
 
     # losses
     d_r_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(r_logit), r_logit)
@@ -69,7 +75,7 @@ with tf.device('/gpu:%d' % gpu_id):
     g_summary = utils.summary({g_loss: 'g_loss'})
 
     # sample
-    f_sample = generator(z, training=False)
+    f_sample = generator(z, training=False, with_bn=with_bn)
 
 
 """ train """

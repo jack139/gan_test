@@ -24,7 +24,8 @@ from PIL import Image
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
-imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
+imgs = glob.glob('../../face-id/data/train4/*/*.jpg')
+#imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
 
 

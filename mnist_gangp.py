@@ -7,7 +7,7 @@ import numpy as np
 #from scipy import misc,ndimage
 import imageio
 
-mnist = input_data.read_data_sets('./MNIST_data')
+mnist = input_data.read_data_sets('./datasets')
 
 batch_size = 100
 width,height = 28,28
