@@ -215,8 +215,10 @@ class ExponentialMovingAverage:
         self.initialize()
         for w1, w2 in zip(self.ema_weights, self.model.weights):
             op = K.moving_average_update(w1, w2, self.momentum)
-            #self.model.metrics_updates.append(op)
-            self.model.add_metric(op, 'ema')
+            #self.model.metrics_updates.append(op) # 在 keras 2.2.4 有效
+            if not hasattr(self.model, '_other_metrics'):
+                self.model._other_metrics = []
+            self.model._other_metrics.append(op)
     def initialize(self):
         """ema_weights初始化跟原模型初始化一致。
         """

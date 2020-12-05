@@ -1,11 +1,7 @@
 # coding=utf-8
-# 在普通的GAN的判别器加入了谱归一化
-# 实现方式是添加kernel_constraint
-# 注意使用代码前还要修改Keras源码，修改
-# keras/engine/base_layer.py的Layer对象的add_weight方法
-# 修改方法见 https://kexue.fm/archives/6051#Keras%E5%AE%9E%E7%8E%B0
-#
-# !!!!!!! 已不需要修改源码 !!!!!!!!!! 见 https://kexue.fm/archives/6311
+# 在普通的GAN的判别器加入了谱归一化 并 使用权重滑动平均（EMA）缓解训练时振荡
+# 使用EMA的原因见：https://kexue.fm/archives/6583
+
 import os
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
@@ -137,14 +133,15 @@ g_train_model = Model(z_in, x_fake_score)
 g_train_model.add_loss(K.mean(- K.log(x_fake_score + 1e-9)))
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
-# EMA
-EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
-EMAer_g_train.inject() # 在模型compile之后执行
-
 
 # 检查模型结构
 d_train_model.summary()
 g_train_model.summary()
+
+
+# EMA
+EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
+EMAer_g_train.inject() # 在模型compile之后执行
 
 
 # 采样函数
@@ -165,7 +162,7 @@ def sample(path):
 
 iters_per_sample = 100
 total_iter = 1000000
-batch_size = 64
+batch_size = 28
 img_generator = data_generator(batch_size)
 
 for i in range(total_iter):
