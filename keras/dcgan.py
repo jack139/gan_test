@@ -144,7 +144,7 @@ def sample(path):
             figure[i * img_dim:(i + 1) * img_dim,
                    j * img_dim:(j + 1) * img_dim] = digit
     figure = (figure + 1) / 2 * 255
-    figure = np.round(figure, 0).astype(int)
+    figure = np.round(figure, 0).astype(np.uint8)
     imageio.imwrite(path, figure)
 
 
