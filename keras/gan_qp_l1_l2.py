@@ -20,10 +20,10 @@ if not os.path.exists('samples'):
     os.mkdir('samples')
 
 
-imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
-#imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
+#imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
+imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
-img_dim = 128
+img_dim = 64
 z_dim = 128
 num_layers = int(np.log2(img_dim)) - 3
 max_num_channels = img_dim * 8
@@ -274,7 +274,7 @@ if __name__ == '__main__':
             print('iter: %s, d_loss: %s, g_loss: %s' % (i, d_loss, g_loss))
         if i % iters_per_sample == 0:
             sample('samples/test_%s.png' % i, n_size, Z)
-            g_train_model.save_weights('checkpoints/g_train_model.weights')
+            g_train_model.save_weights('./g_train_model.weights')
         #if i % fid_per_sample == 0:
         #    def _generator():
         #        while True:
@@ -288,7 +288,7 @@ if __name__ == '__main__':
         #    logs['fid'].append((i, fid))
         #    if fid < logs['best']:
         #        logs['best'] = fid
-        #        g_train_model.save_weights('checkpoints/g_train_model.best.weights')
+        #        g_train_model.save_weights('./g_train_model.best.weights')
         #    json.dump(logs, open('logs.txt', 'w'), indent=4)
         #    print('iter: %s, fid: %s, best: %s' % (i, fid, logs['best']))
         #if i > 10000:
