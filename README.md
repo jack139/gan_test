@@ -12,7 +12,7 @@
 #### DCGAN + SN
 
 <center class="half">
-<img src="keras/results/dcgan_sn_3000.png" alt="dcgan_sn_3000" width="350" /><img src="keras/results/dcgan_sn_5000.png" alt="dcgan_sn_5000" width="350" />
+<img src="keras/results/dcgan_sn_3000.png" alt="dcgan_sn_3000" width="350" /> <img src="keras/results/dcgan_sn_5000.png" alt="dcgan_sn_5000" width="350" />
 </center>
 
 #### DCGAN + SN + EMA
@@ -62,6 +62,12 @@
 
 <center class="half">
 <img src="keras/results/gan_qp_l2_3000.png" alt="gan_qp_l2_3000" width="350" /> <img src="keras/results/gan_qp_l2_5000.png" alt="gan_qp_l2_5000" width="350" />
+</center>
+
+#### GAN-QP + L2 + EMA
+
+<center class="half">
+<img src="keras/results/gan_qp_l2_ema_3000.png" alt="gan_qp_l2_ema_3000" width="350" /> <img src="keras/results/gan_qp_l2_ema_5000.png" alt="gan_qp_l2_ema_5000" width="350" />
 </center>
 
 
