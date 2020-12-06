@@ -6,11 +6,13 @@ import numpy as np
 #from scipy import misc
 import glob
 import imageio
+import tensorflow as tf
 from keras.models import Model
 from keras.layers import *
 from keras import backend as K
 from keras.optimizers import Adam
 from PIL import Image
+from utils import SpectralNormalization
 
 
 if not os.path.exists('samples'):
@@ -52,22 +54,23 @@ def data_generator(batch_size=32):
 x_in = Input(shape=(img_dim, img_dim, 3))
 x = x_in
 
-x = Conv2D(img_dim,
+x = SpectralNormalization(Conv2D(img_dim,
            (5, 5),
            strides=(2, 2),
-           padding='same')(x)
+           padding='same'))(x)
 x = LeakyReLU()(x)
 
 for i in range(3):
-    x = Conv2D(img_dim * 2**(i + 1),
+    x = SpectralNormalization(Conv2D(img_dim * 2**(i + 1),
                (5, 5),
                strides=(2, 2),
-               padding='same')(x)
-    x = BatchNormalization()(x)
+               padding='same'))(x)
+    x = SpectralNormalization(BatchNormalization())(x)
     x = LeakyReLU()(x)
 
 x = Flatten()(x)
-x = Dense(1, activation='sigmoid')(x)
+#x = SpectralNormalization(Dense(1, use_bias=False, activation='sigmoid'))(x)
+x = SpectralNormalization(Dense(1, use_bias=False))(x)
 
 d_model = Model(x_in, x)
 d_model.summary()
@@ -105,18 +108,14 @@ x_in = Input(shape=(img_dim, img_dim, 3))
 z_in = Input(shape=(z_dim, ))
 g_model.trainable = False
 
-x_real = x_in
 x_fake = g_model(z_in)
-
 x_real_score = d_model(x_in)
 x_fake_score = d_model(x_fake)
 
 d_train_model = Model([x_in, z_in],
                       [x_real_score, x_fake_score])
 
-d_loss = - K.log(x_real_score + 1e-9) - K.log(1 - x_fake_score + 1e-9)
-d_loss_plus = keras.losses.mean_squared_error(x_real, x_fake) * 5 # new regularization
-d_loss = K.mean(d_loss + d_loss_plus)
+d_loss = K.mean(- K.log(x_real_score + 1e-9) - K.log(1 - x_fake_score + 1e-9))
 d_train_model.add_loss(d_loss)
 d_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
@@ -127,7 +126,12 @@ d_model.trainable = False
 x_fake_score = d_model(g_model(z_in))
 
 g_train_model = Model(z_in, x_fake_score)
-g_train_model.add_loss(K.mean(- K.log(x_fake_score + 1e-9)))
+
+#g_loss = - K.log(x_fake_score + 1e-9)
+g_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(x_fake_score), x_fake_score)
+g_loss_plus = tf.losses.mean_squared_error(x_in, x_fake) * 5 # new regularization
+g_loss = K.mean(g_loss + g_loss_plus)
+g_train_model.add_loss(g_loss)
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
