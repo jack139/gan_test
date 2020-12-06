@@ -5,70 +5,80 @@
 > 说明：
 >
 > 1. 生成器基本结构都是卷积网络
-> 2. 两张图，左为循环3000次，右为循环5000次
-> 3. 缩写含义：SN - 谱归一化（Spectral Normalization）；EMA - 权重滑动平均（Exponential Moving Average）
-> 4. 训练数据集使用CASIA-maxpy-clean，去除单色图片
+> 2. 缩写含义：SN - 谱归一化（Spectral Normalization）；EMA - 权重滑动平均（Exponential Moving Average）
+> 3. 训练数据集使用CASIA-maxpy-clean，去除单色图片
 
 #### DCGAN + SN
 
-<center class="half">
-<img src="keras/results/dcgan_sn_3000.png" alt="dcgan_sn_3000" width="350" /> <img src="keras/results/dcgan_sn_5000.png" alt="dcgan_sn_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/dcgan_sn_3000.png" alt="dcgan_sn_3000" width="350" /> | <img src="keras/results/dcgan_sn_5000.png" alt="dcgan_sn_5000" width="350" /> |
+
+#### DCGAN + SN + 正则项
+
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/dcgan_sn_reg_3000.png" alt="dcgan_sn_reg_3000" width="350" /> | <img src="keras/results/dcgan_sn_reg_5000.png" alt="dcgan_sn_reg_5000" width="350" /> |
 
 #### DCGAN + SN + EMA
 
-<center class="half">
-<img src="keras/results/dcgan_sn_ema_3000.png" alt="dcgan_sn_ema_3000" width="350" /> <img src="keras/results/dcgan_sn_ema_5000.png" alt="dcgan_sn_ema_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/dcgan_sn_ema_3000.png" alt="dcgan_sn_ema_3000" width="350" /> | <img src="keras/results/dcgan_sn_ema_5000.png" alt="dcgan_sn_ema_5000" width="350" /> | 
+
+#### DCGAN + SN + EMA + 正则项
+
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/dcgan_sn_ema_reg_3000.png" alt="dcgan_sn_ema_reg_3000" width="350" /> | <img src="keras/results/dcgan_sn_ema_reg_5000.png" alt="dcgan_sn_ema_reg_5000" width="350" /> | 
 
 #### RSGAN + SN
 
-<center class="half">
-<img src="keras/results/rsgan_sn_3000.png" alt="rsgan_sn_3000" width="350" /> <img src="keras/results/rsgan_sn_5000.png" alt="rsgan_sn_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/rsgan_sn_3000.png" alt="rsgan_sn_3000" width="350" /> | <img src="keras/results/rsgan_sn_5000.png" alt="rsgan_sn_5000" width="350" /> | 
 
 #### WGAN + SN
 
-<center class="half">
-<img src="keras/results/wgan_sn_3000.png" alt="wgan_sn_3000" width="350" /> <img src="keras/results/wgan_sn_5000.png" alt="wgan_sn_5000" width="350" />
-</center>
-
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/wgan_sn_3000.png" alt="wgan_sn_3000" width="350" /> | <img src="keras/results/wgan_sn_5000.png" alt="wgan_sn_5000" width="350" /> | 
 
 #### WGAN-GP
 
-<center class="half">
-<img src="keras/results/wgan_gp_3000.png" alt="wgan_gp_3000" width="350" /> <img src="keras/results/wgan_gp_5000.png" alt="wgan_gp_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/wgan_gp_3000.png" alt="wgan_gp_3000" width="350" /> | <img src="keras/results/wgan_gp_5000.png" alt="wgan_gp_5000" width="350" /> | 
 
 #### WGAN-DIV
 
-<center class="half">
-<img src="keras/results/wgan_div_3000.png" alt="wgan_div_3000" width="350" /> <img src="keras/results/wgan_div_5000.png" alt="wgan_div_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/wgan_div_3000.png" alt="wgan_div_3000" width="350" /> | <img src="keras/results/wgan_div_5000.png" alt="wgan_div_5000" width="350" /> | 
 
 #### GAN-QP + L1
 
-<center class="half">
-<img src="keras/results/gan_qp_l1_3000.png" alt="gan_qp_l1_3000" width="350" /> <img src="keras/results/gan_qp_l1_5000.png" alt="gan_qp_l1_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/gan_qp_l1_3000.png" alt="gan_qp_l1_3000" width="350" /> | <img src="keras/results/gan_qp_l1_5000.png" alt="gan_qp_l1_5000" width="350" /> | 
 
 #### GAN-QP + L1 + EMA
 
-<center class="half">
-<img src="keras/results/gan_qp_l1_ema_3000.png" alt="gan_qp_l1_ema_3000" width="350" /> <img src="keras/results/gan_qp_l1_ema_5000.png" alt="gan_qp_l1_ema_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/gan_qp_l1_ema_3000.png" alt="gan_qp_l1_ema_3000" width="350" /> | <img src="keras/results/gan_qp_l1_ema_5000.png" alt="gan_qp_l1_ema_5000" width="350" /> | 
 
 #### GAN-QP + L2
 
-<center class="half">
-<img src="keras/results/gan_qp_l2_3000.png" alt="gan_qp_l2_3000" width="350" /> <img src="keras/results/gan_qp_l2_5000.png" alt="gan_qp_l2_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/gan_qp_l2_3000.png" alt="gan_qp_l2_3000" width="350" /> | <img src="keras/results/gan_qp_l2_5000.png" alt="gan_qp_l2_5000" width="350" /> | 
 
 #### GAN-QP + L2 + EMA
 
-<center class="half">
-<img src="keras/results/gan_qp_l2_ema_3000.png" alt="gan_qp_l2_ema_3000" width="350" /> <img src="keras/results/gan_qp_l2_ema_5000.png" alt="gan_qp_l2_ema_5000" width="350" />
-</center>
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/gan_qp_l2_ema_3000.png" alt="gan_qp_l2_ema_3000" width="350" /> | <img src="keras/results/gan_qp_l2_ema_5000.png" alt="gan_qp_l2_ema_5000" width="350" /> | 
 
 
 ### 在Keras 2.3.1使用权重滑动平均（EMA）的patch

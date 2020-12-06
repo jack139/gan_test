@@ -11,8 +11,9 @@ from keras.models import Model
 from keras.layers import *
 from keras import backend as K
 from keras.optimizers import Adam
+from keras import losses
 from PIL import Image
-from utils import SpectralNormalization
+from utils import SpectralNormalization, ExponentialMovingAverage
 
 
 if not os.path.exists('samples'):
@@ -69,7 +70,6 @@ for i in range(3):
     x = LeakyReLU()(x)
 
 x = Flatten()(x)
-#x = SpectralNormalization(Dense(1, use_bias=False, activation='sigmoid'))(x)
 x = SpectralNormalization(Dense(1, use_bias=False))(x)
 
 d_model = Model(x_in, x)
@@ -115,7 +115,9 @@ x_fake_score = d_model(x_fake)
 d_train_model = Model([x_in, z_in],
                       [x_real_score, x_fake_score])
 
-d_loss = K.mean(- K.log(x_real_score + 1e-9) - K.log(1 - x_fake_score + 1e-9))
+d_r_loss = K.binary_crossentropy(tf.ones_like(x_real_score), x_real_score)
+d_f_loss = K.binary_crossentropy(tf.zeros_like(x_fake_score), x_fake_score)
+d_loss = (d_r_loss + d_f_loss) / 2.0
 d_train_model.add_loss(d_loss)
 d_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
@@ -123,14 +125,15 @@ d_train_model.compile(optimizer=Adam(2e-4, 0.5))
 # 整合模型（训练生成器）
 g_model.trainable = True
 d_model.trainable = False
-x_fake_score = d_model(g_model(z_in))
+x_fake = g_model(z_in)
+x_fake_score = d_model(x_fake)
 
-g_train_model = Model(z_in, x_fake_score)
+g_train_model = Model([x_in, z_in], x_fake_score)
 
-#g_loss = - K.log(x_fake_score + 1e-9)
-g_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(x_fake_score), x_fake_score)
-g_loss_plus = tf.losses.mean_squared_error(x_in, x_fake) * 5 # new regularization
-g_loss = K.mean(g_loss + g_loss_plus)
+# 正则项参考 https://kexue.fm/archives/5716
+g_loss = K.binary_crossentropy(tf.ones_like(x_fake_score), x_fake_score)
+g_loss_plus = losses.mean_squared_error(x_in, x_fake) * 5 # new regularization
+g_loss += g_loss_plus
 g_train_model.add_loss(g_loss)
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
@@ -139,6 +142,9 @@ g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 d_train_model.summary()
 g_train_model.summary()
 
+# EMA
+EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
+EMAer_g_train.inject() # 在模型compile之后执行
 
 # 采样函数
 def sample(path):
@@ -168,9 +174,12 @@ for i in range(total_iter):
             [next(img_generator), z_sample], None)
     for j in range(2):
         z_sample = np.random.randn(batch_size, z_dim)
-        g_loss = g_train_model.train_on_batch(z_sample, None)
+        g_loss = g_train_model.train_on_batch(
+            [next(img_generator), z_sample], None)
     if i % 10 == 0:
         print('iter: %s, d_loss: %s, g_loss: %s' % (i, d_loss, g_loss))
     if i % iters_per_sample == 0:
+        EMAer_g_train.apply_ema_weights() # 将EMA的权重应用到模型中
         sample('samples/test_%s.png' % i)
         g_train_model.save_weights('./g_train_model.weights')
+        EMAer_g_train.reset_old_weights() # 继续训练之前，要恢复模型旧权重
