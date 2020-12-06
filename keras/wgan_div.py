@@ -21,7 +21,7 @@ if not os.path.exists('samples'):
 
 imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
-img_dim = 128
+img_dim = 64
 z_dim = 128
 num_layers = int(np.log2(img_dim)) - 3
 max_num_channels = img_dim * 8
