@@ -16,7 +16,6 @@ from keras.models import Model
 from keras.layers import *
 from keras import backend as K
 from keras.optimizers import Adam
-import os
 from PIL import Image
 from utils import SpectralNormalization
 

@@ -1,5 +1,4 @@
-# coding=utf-8
-# wgan-div
+#! -*- coding: utf-8 -*-
 import os
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
@@ -10,7 +9,6 @@ import imageio
 from keras.models import Model
 from keras.layers import *
 from keras import backend as K
-from keras.initializers import RandomNormal
 from keras.optimizers import Adam
 from PIL import Image
 
@@ -20,24 +18,25 @@ if not os.path.exists('samples'):
 
 imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
+
+
+#height, width = misc.imread(imgs[0]).shape[:2]
+height, width = imageio.imread(imgs[0]).shape[:2]
+center_height = int((height - width) / 2)
 img_dim = 64
-z_dim = 128
-num_layers = int(np.log2(img_dim)) - 3
-max_num_channels = img_dim * 8
-f_size = img_dim // 2**(num_layers + 1)
-batch_size = 64
+z_dim = 100
 
 
 def imread(f):
-    #x = misc.imread(f, mode='RGB')
-    x = imageio.imread(f, as_gray=False, pilmode="RGB")
+    #x = misc.imread(f)
+    x = imageio.imread(f)
+    x = x[center_height:center_height + width, :]
     #x = misc.imresize(x, (img_dim, img_dim))
     im = Image.fromarray(x)
     x = np.array(im.resize((img_dim, img_dim), Image.BICUBIC))
     return x.astype(np.float32) / 255 * 2 - 1
 
-
-def data_generator(batch_size=64):
+def data_generator(batch_size=32):
     X = []
     while True:
         np.random.shuffle(imgs)
@@ -53,20 +52,22 @@ def data_generator(batch_size=64):
 x_in = Input(shape=(img_dim, img_dim, 3))
 x = x_in
 
-for i in range(num_layers + 1):
-    num_channels = max_num_channels // 2**(num_layers - i)
-    x = Conv2D(num_channels,
+x = Conv2D(img_dim,
+           (5, 5),
+           strides=(2, 2),
+           padding='same')(x)
+x = LeakyReLU()(x)
+
+for i in range(3):
+    x = Conv2D(img_dim * 2**(i + 1),
                (5, 5),
                strides=(2, 2),
-               use_bias=False,
-               padding='same',
-               kernel_initializer=RandomNormal(stddev=0.02))(x)
-    if i > 0:
-        x = BatchNormalization()(x)
-    x = LeakyReLU(0.2)(x)
+               padding='same')(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU()(x)
 
-x = GlobalAveragePooling2D()(x)
-x = Dense(1, use_bias=False)(x)
+x = Flatten()(x)
+x = Dense(1, activation='sigmoid')(x)
 
 d_model = Model(x_in, x)
 d_model.summary()
@@ -76,27 +77,23 @@ d_model.summary()
 z_in = Input(shape=(z_dim, ))
 z = z_in
 
-z = Dense(f_size**2 * max_num_channels,
-          kernel_initializer=RandomNormal(stddev=0.02))(z)
+z = Dense(4 * 4 * img_dim * 8)(z)
 z = BatchNormalization()(z)
 z = Activation('relu')(z)
-z = Reshape((f_size, f_size, max_num_channels))(z)
+z = Reshape((4, 4, img_dim * 8))(z)
 
-for i in range(num_layers):
-    num_channels = max_num_channels // 2**(i + 1)
-    z = Conv2DTranspose(num_channels,
+for i in range(3):
+    z = Conv2DTranspose(img_dim * 4 // 2**i,
                         (5, 5),
                         strides=(2, 2),
-                        padding='same',
-                        kernel_initializer=RandomNormal(stddev=0.02))(z)
+                        padding='same')(z)
     z = BatchNormalization()(z)
     z = Activation('relu')(z)
 
 z = Conv2DTranspose(3,
                     (5, 5),
                     strides=(2, 2),
-                    padding='same',
-                    kernel_initializer=RandomNormal(stddev=0.02))(z)
+                    padding='same')(z)
 z = Activation('tanh')(z)
 
 g_model = Model(z_in, z)
@@ -108,49 +105,25 @@ x_in = Input(shape=(img_dim, img_dim, 3))
 z_in = Input(shape=(z_dim, ))
 g_model.trainable = False
 
-x_real = x_in
 x_fake = g_model(z_in)
-
-x_real_score = d_model(x_real)
+x_real_score = d_model(x_in)
 x_fake_score = d_model(x_fake)
 
 d_train_model = Model([x_in, z_in],
                       [x_real_score, x_fake_score])
 
-
-k = 2
-p = 6
-d_loss = K.mean(x_real_score - x_fake_score)
-
-real_grad = K.gradients(x_real_score, [x_real])[0]
-fake_grad = K.gradients(x_fake_score, [x_fake])[0]
-
-real_grad_norm = K.sum(real_grad**2, axis=[1, 2, 3])**(p / 2)
-fake_grad_norm = K.sum(fake_grad**2, axis=[1, 2, 3])**(p / 2)
-grad_loss = K.mean(real_grad_norm + fake_grad_norm) * k / 2
-
-w_dist = K.mean(x_fake_score - x_real_score)
-
-d_train_model.add_loss(d_loss + grad_loss)
+d_loss = K.mean(- K.log(x_real_score + 1e-9) - K.log(1 - x_fake_score + 1e-9))
+d_train_model.add_loss(d_loss)
 d_train_model.compile(optimizer=Adam(2e-4, 0.5))
-#d_train_model.metrics_names.append('w_dist')
-#d_train_model.metrics_tensors.append(w_dist)
-d_train_model.add_metric(w_dist, 'w_dist') # 自定义的 metrics
-
-
 
 
 # 整合模型（训练生成器）
 g_model.trainable = True
 d_model.trainable = False
-
-x_fake = g_model(z_in)
-x_fake_score = d_model(x_fake)
+x_fake_score = d_model(g_model(z_in))
 
 g_train_model = Model(z_in, x_fake_score)
-
-g_loss = K.mean(x_fake_score)
-g_train_model.add_loss(g_loss)
+g_train_model.add_loss(K.mean(- K.log(x_fake_score + 1e-9)))
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
@@ -171,12 +144,13 @@ def sample(path):
             figure[i * img_dim:(i + 1) * img_dim,
                    j * img_dim:(j + 1) * img_dim] = digit
     figure = (figure + 1) / 2 * 255
-    figure = np.round(figure, 0).astype(np.uint8)
+    figure = np.round(figure, 0).astype(int)
     imageio.imwrite(path, figure)
 
 
 iters_per_sample = 100
 total_iter = 1000000
+batch_size = 64
 img_generator = data_generator(batch_size)
 
 for i in range(total_iter):
@@ -184,7 +158,7 @@ for i in range(total_iter):
         z_sample = np.random.randn(batch_size, z_dim)
         d_loss = d_train_model.train_on_batch(
             [next(img_generator), z_sample], None)
-    for j in range(1):
+    for j in range(2):
         z_sample = np.random.randn(batch_size, z_dim)
         g_loss = g_train_model.train_on_batch(z_sample, None)
     if i % 10 == 0:

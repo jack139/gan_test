@@ -12,7 +12,6 @@ from keras.layers import *
 from keras import backend as K
 from keras.optimizers import Adam
 from keras.applications.inception_v3 import InceptionV3,preprocess_input
-import os
 from PIL import Image
 from utils import ExponentialMovingAverage
 
