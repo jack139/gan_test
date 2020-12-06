@@ -1,12 +1,75 @@
-## 收集的一些GAN的例子
+## 收集的一些GAN网络
 
-[1]: https://github.com/bojone/gan
-[2]: https://github.com/eriklindernoren/Keras-GAN
+### 部分测试结果对比
+
+> 说明：
+>
+> 1. 生成器基本结构都是卷积网络
+> 2. 两张图，左为循环3000次，右为循环5000次
+> 3. 缩写含义：SN - 谱归一化（Spectral Normalization）；EMA - 权重滑动平均（Exponential Moving Average）
+> 4. 训练数据集使用CASIA-maxpy-clean，去除单色图片
+
+#### DCGAN + SN
+
+<center class="half">
+<img src="keras/results/dcgan_sn_3000.png" alt="dcgan_sn_3000" style="zoom:60%;" />
+<img src="keras/results/dcgan_sn_5000.png" alt="dcgan_sn_5000" style="zoom:60%;" />
+</center>
+
+#### DCGAN + SN + EMA
+
+<center class="half">
+<img src="keras/results/dcgan_sn_ema_3000.png" alt="dcgan_sn_ema_3000" style="zoom:60%;" />
+<img src="keras/results/dcgan_sn_ema_5000.png" alt="dcgan_sn_ema_5000" style="zoom:60%;" />
+</center>
+
+#### RSGAN + SN
+
+<center class="half">
+<img src="keras/results/rsgan_sn_3000.png" alt="rsgan_sn_3000" style="zoom:60%;" />
+<img src="keras/results/rsgan_sn_5000.png" alt="rsgan_sn_5000" style="zoom:60%;" />
+</center>
+
+#### WGAN + SN
+
+<center class="half">
+<img src="keras/results/wgan_sn_3000.png" alt="wgan_sn_3000" style="zoom:60%;" />
+<img src="keras/results/wgan_sn_5000.png" alt="wgan_sn_5000" style="zoom:60%;" />
+</center>
 
 
-### 在keras 2.3.1使用权重滑动平均（EMA）的patch
+#### WGAN-GP
 
-```
+<center class="half">
+<img src="keras/results/wgan_gp_3000.png" alt="wgan_gp_3000" style="zoom:60%;" />
+<img src="keras/results/wgan_gp_5000.png" alt="wgan_gp_5000" style="zoom:60%;" />
+</center>
+
+#### WGAN-DIV
+
+<center class="half">
+<img src="keras/results/wgan_div_3000.png" alt="wgan_div_3000" style="zoom:60%;" />
+<img src="keras/results/wgan_div_5000.png" alt="wgan_div_5000" style="zoom:60%;" />
+</center>
+
+#### GAN-QP + L1
+
+<center class="half">
+<img src="keras/results/gan_qp_l1_3000.png" alt="gan_qp_l1_3000" style="zoom:60%;" />
+<img src="keras/results/gan_qp_l1_5000.png" alt="gan_qp_l1_5000" style="zoom:60%;" />
+</center>
+
+#### GAN-QP + L1 + EMA
+
+<center class="half">
+<img src="keras/results/gan_qp_l1_ema_3000.png" alt="gan_qp_l1_ema_3000" style="zoom:60%;" />
+<img src="keras/results/gan_qp_l1_ema_5000.png" alt="gan_qp_l1_ema_5000" style="zoom:60%;" />
+</center>
+
+
+### 在Keras 2.3.1使用权重滑动平均（EMA）的patch
+
+```diff
 diff --git a/keras/engine/training.py b/keras/engine/training.py
 index 0a556f21..1a9a374e 100644
 --- a/keras/engine/training.py
@@ -21,4 +84,11 @@ index 0a556f21..1a9a374e 100644
                      **self._function_kwargs)
 ```
 
-EMA的实现见```keras/utils.py```中```ExponentialMovingAverage```。EMA的使用见```keras/dcgan_sn_ema.py```。
+EMA的实现见```keras/utils.py```中```ExponentialMovingAverage```。使用EMA的例子见```keras/dcgan_sn_ema.py```。
+
+
+
+### 原始代码来源
+
+[1]: https://github.com/bojone/gan	"https://github.com/bojone/gan"
+[2]: https://github.com/eriklindernoren/Keras-GAN	"https://github.com/eriklindernoren/Keras-GAN"

@@ -1,10 +1,4 @@
-# coding=utf-8
-# 实现基于“谱归一化”的Keras代码，实现方式是添加kernel_constraint
-# 注意使用代码前还要修改Keras源码，修改
-# keras/engine/base_layer.py的Layer对象的add_weight方法
-# 修改方法见 https://kexue.fm/archives/6051#Keras%E5%AE%9E%E7%8E%B0
-#
-# !!!!!!! 已不需要修改源码 !!!!!!!!!! 见 https://kexue.fm/archives/6311
+#! -*- coding: utf-8 -*-
 import os
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
@@ -17,13 +11,11 @@ from keras.layers import *
 from keras import backend as K
 from keras.optimizers import Adam
 from PIL import Image
-from utils import SpectralNormalization
 
 
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
-#imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
 imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
 
@@ -44,7 +36,6 @@ def imread(f):
     x = np.array(im.resize((img_dim, img_dim), Image.BICUBIC))
     return x.astype(np.float32) / 255 * 2 - 1
 
-
 def data_generator(batch_size=32):
     X = []
     while True:
@@ -61,22 +52,22 @@ def data_generator(batch_size=32):
 x_in = Input(shape=(img_dim, img_dim, 3))
 x = x_in
 
-x = SpectralNormalization(Conv2D(img_dim,
+x = Conv2D(img_dim,
            (5, 5),
            strides=(2, 2),
-           padding='same'))(x)
+           padding='same')(x)
 x = LeakyReLU()(x)
 
 for i in range(3):
-    x = SpectralNormalization(Conv2D(img_dim * 2**(i + 1),
+    x = Conv2D(img_dim * 2**(i + 1),
                (5, 5),
                strides=(2, 2),
-               padding='same'))(x)
-    x = SpectralNormalization(BatchNormalization())(x)
+               padding='same')(x)
+    x = BatchNormalization()(x)
     x = LeakyReLU()(x)
 
 x = Flatten()(x)
-x = SpectralNormalization(Dense(1, use_bias=False))(x)
+x = Dense(1, activation='sigmoid')(x)
 
 d_model = Model(x_in, x)
 d_model.summary()
@@ -114,14 +105,18 @@ x_in = Input(shape=(img_dim, img_dim, 3))
 z_in = Input(shape=(z_dim, ))
 g_model.trainable = False
 
+x_real = x_in
 x_fake = g_model(z_in)
+
 x_real_score = d_model(x_in)
 x_fake_score = d_model(x_fake)
 
 d_train_model = Model([x_in, z_in],
                       [x_real_score, x_fake_score])
 
-d_loss = K.mean(x_fake_score - x_real_score)
+d_loss = - K.log(x_real_score + 1e-9) - K.log(1 - x_fake_score + 1e-9)
+d_loss_plus = keras.losses.mean_squared_error(x_real, x_fake) * 5 # new regularization
+d_loss = K.mean(d_loss + d_loss_plus)
 d_train_model.add_loss(d_loss)
 d_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
@@ -132,7 +127,7 @@ d_model.trainable = False
 x_fake_score = d_model(g_model(z_in))
 
 g_train_model = Model(z_in, x_fake_score)
-g_train_model.add_loss(K.mean(- x_fake_score))
+g_train_model.add_loss(K.mean(- K.log(x_fake_score + 1e-9)))
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
@@ -163,11 +158,11 @@ batch_size = 64
 img_generator = data_generator(batch_size)
 
 for i in range(total_iter):
-    for j in range(5):
+    for j in range(1):
         z_sample = np.random.randn(batch_size, z_dim)
         d_loss = d_train_model.train_on_batch(
             [next(img_generator), z_sample], None)
-    for j in range(1):
+    for j in range(2):
         z_sample = np.random.randn(batch_size, z_dim)
         g_loss = g_train_model.train_on_batch(z_sample, None)
     if i % 10 == 0:
