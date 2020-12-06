@@ -12,58 +12,56 @@
 #### DCGAN + SN
 
 <center class="half">
-<img src="keras/results/dcgan_sn_3000.png" alt="dcgan_sn_3000" style="zoom:60%;" />
-<img src="keras/results/dcgan_sn_5000.png" alt="dcgan_sn_5000" style="zoom:60%;" />
+<img src="keras/results/dcgan_sn_3000.png" alt="dcgan_sn_3000" style="zoom:60%;" /><img src="keras/results/dcgan_sn_5000.png" alt="dcgan_sn_5000" style="zoom:60%;" />
 </center>
 
 #### DCGAN + SN + EMA
 
 <center class="half">
-<img src="keras/results/dcgan_sn_ema_3000.png" alt="dcgan_sn_ema_3000" style="zoom:60%;" />
-<img src="keras/results/dcgan_sn_ema_5000.png" alt="dcgan_sn_ema_5000" style="zoom:60%;" />
+<img src="keras/results/dcgan_sn_ema_3000.png" alt="dcgan_sn_ema_3000" style="zoom:60%;" /><img src="keras/results/dcgan_sn_ema_5000.png" alt="dcgan_sn_ema_5000" style="zoom:60%;" />
 </center>
 
 #### RSGAN + SN
 
 <center class="half">
-<img src="keras/results/rsgan_sn_3000.png" alt="rsgan_sn_3000" style="zoom:60%;" />
-<img src="keras/results/rsgan_sn_5000.png" alt="rsgan_sn_5000" style="zoom:60%;" />
+<img src="keras/results/rsgan_sn_3000.png" alt="rsgan_sn_3000" style="zoom:60%;" /><img src="keras/results/rsgan_sn_5000.png" alt="rsgan_sn_5000" style="zoom:60%;" />
 </center>
 
 #### WGAN + SN
 
 <center class="half">
-<img src="keras/results/wgan_sn_3000.png" alt="wgan_sn_3000" style="zoom:60%;" />
-<img src="keras/results/wgan_sn_5000.png" alt="wgan_sn_5000" style="zoom:60%;" />
+<img src="keras/results/wgan_sn_3000.png" alt="wgan_sn_3000" style="zoom:60%;" /><img src="keras/results/wgan_sn_5000.png" alt="wgan_sn_5000" style="zoom:60%;" />
 </center>
 
 
 #### WGAN-GP
 
 <center class="half">
-<img src="keras/results/wgan_gp_3000.png" alt="wgan_gp_3000" style="zoom:60%;" />
-<img src="keras/results/wgan_gp_5000.png" alt="wgan_gp_5000" style="zoom:60%;" />
+<img src="keras/results/wgan_gp_3000.png" alt="wgan_gp_3000" style="zoom:60%;" /><img src="keras/results/wgan_gp_5000.png" alt="wgan_gp_5000" style="zoom:60%;" />
 </center>
 
 #### WGAN-DIV
 
 <center class="half">
-<img src="keras/results/wgan_div_3000.png" alt="wgan_div_3000" style="zoom:60%;" />
-<img src="keras/results/wgan_div_5000.png" alt="wgan_div_5000" style="zoom:60%;" />
+<img src="keras/results/wgan_div_3000.png" alt="wgan_div_3000" style="zoom:60%;" /><img src="keras/results/wgan_div_5000.png" alt="wgan_div_5000" style="zoom:60%;" />
 </center>
 
 #### GAN-QP + L1
 
 <center class="half">
-<img src="keras/results/gan_qp_l1_3000.png" alt="gan_qp_l1_3000" style="zoom:60%;" />
-<img src="keras/results/gan_qp_l1_5000.png" alt="gan_qp_l1_5000" style="zoom:60%;" />
+<img src="keras/results/gan_qp_l1_3000.png" alt="gan_qp_l1_3000" style="zoom:60%;" /><img src="keras/results/gan_qp_l1_5000.png" alt="gan_qp_l1_5000" style="zoom:60%;" />
 </center>
 
 #### GAN-QP + L1 + EMA
 
 <center class="half">
-<img src="keras/results/gan_qp_l1_ema_3000.png" alt="gan_qp_l1_ema_3000" style="zoom:60%;" />
-<img src="keras/results/gan_qp_l1_ema_5000.png" alt="gan_qp_l1_ema_5000" style="zoom:60%;" />
+<img src="keras/results/gan_qp_l1_ema_3000.png" alt="gan_qp_l1_ema_3000" style="zoom:60%;" /><img src="keras/results/gan_qp_l1_ema_5000.png" alt="gan_qp_l1_ema_5000" style="zoom:60%;" />
+</center>
+
+#### GAN-QP + L2
+
+<center class="half">
+<img src="keras/results/gan_qp_l2_3000.png" alt="gan_qp_l2_3000" style="zoom:60%;" /><img src="keras/results/gan_qp_l2_5000.png" alt="gan_qp_l2_5000" style="zoom:60%;" />
 </center>
 
 
