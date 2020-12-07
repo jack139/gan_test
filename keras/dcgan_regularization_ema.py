@@ -118,7 +118,7 @@ d_train_model = Model([x_in, z_in],
 d_r_loss = K.binary_crossentropy(K.ones_like(x_real_score), x_real_score)
 d_f_loss = K.binary_crossentropy(K.zeros_like(x_fake_score), x_fake_score)
 d_loss = (d_r_loss + d_f_loss) / 2.0
-d_train_model.add_loss(K.mean(d_loss))
+d_train_model.add_loss(d_loss)
 d_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
@@ -134,7 +134,7 @@ g_train_model = Model([x_in, z_in], x_fake_score)
 g_loss = K.binary_crossentropy(K.ones_like(x_fake_score), x_fake_score)
 g_loss_plus = losses.mean_squared_error(x_in, x_fake) * 5 # new regularization
 g_loss += g_loss_plus
-g_train_model.add_loss(K.mean(g_loss))
+g_train_model.add_loss(g_loss)
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
