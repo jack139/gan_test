@@ -12,13 +12,14 @@ from keras import backend as K
 from keras.optimizers import Adam
 from keras import losses
 from PIL import Image
-from utils import SpectralNormalization, ExponentialMovingAverage
+from utils import ExponentialMovingAverage
 
 
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
-imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
+imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
+#imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
 
 
@@ -27,7 +28,7 @@ height, width = imageio.imread(imgs[0]).shape[:2]
 center_height = int((height - width) / 2)
 img_dim = 64
 z_dim = 100
-EMA = True # whether us EMA
+EMA = False # whether use EMA
 
 def imread(f):
     #x = misc.imread(f)
@@ -54,22 +55,22 @@ def data_generator(batch_size=32):
 x_in = Input(shape=(img_dim, img_dim, 3))
 x = x_in
 
-x = SpectralNormalization(Conv2D(img_dim,
+x = Conv2D(img_dim,
            (5, 5),
            strides=(2, 2),
-           padding='same'))(x)
+           padding='same')(x)
 x = LeakyReLU()(x)
 
 for i in range(3):
-    x = SpectralNormalization(Conv2D(img_dim * 2**(i + 1),
+    x = Conv2D(img_dim * 2**(i + 1),
                (5, 5),
                strides=(2, 2),
-               padding='same'))(x)
-    x = SpectralNormalization(BatchNormalization())(x)
+               padding='same')(x)
+    x = BatchNormalization()(x)
     x = LeakyReLU()(x)
 
 x = Flatten()(x)
-x = SpectralNormalization(Dense(1, use_bias=False))(x)
+x = Dense(1, activation='sigmoid')(x)
 
 d_model = Model(x_in, x)
 d_model.summary()
@@ -117,7 +118,7 @@ d_train_model = Model([x_in, z_in],
 d_r_loss = K.binary_crossentropy(K.ones_like(x_real_score), x_real_score)
 d_f_loss = K.binary_crossentropy(K.zeros_like(x_fake_score), x_fake_score)
 d_loss = (d_r_loss + d_f_loss) / 2.0
-d_train_model.add_loss(d_loss)
+d_train_model.add_loss(K.mean(d_loss))
 d_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
@@ -133,7 +134,7 @@ g_train_model = Model([x_in, z_in], x_fake_score)
 g_loss = K.binary_crossentropy(K.ones_like(x_fake_score), x_fake_score)
 g_loss_plus = losses.mean_squared_error(x_in, x_fake) * 5 # new regularization
 g_loss += g_loss_plus
-g_train_model.add_loss(g_loss)
+g_train_model.add_loss(K.mean(g_loss))
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
@@ -172,10 +173,11 @@ for i in range(total_iter):
         z_sample = np.random.randn(batch_size, z_dim)
         d_loss = d_train_model.train_on_batch(
             [next(img_generator), z_sample], None)
+    z_sample = np.random.randn(batch_size, z_dim)
+    z_fake = g_model.predict(z_sample)
     for j in range(2):
-        z_sample = np.random.randn(batch_size, z_dim)
         g_loss = g_train_model.train_on_batch(
-            [next(img_generator), z_sample], None)
+            [z_fake, z_sample], None)
         if EMA:
             EMAer_g_train.ema_on_batch()
     if i % 10 == 0:
