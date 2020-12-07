@@ -43,22 +43,54 @@ class SpectralNormalization:
         return self.layer(inputs)
 
 
-# 权重滑动平均 EMA （需要给Keras 2.3.1打个补丁，才能生效）
-''' 
-diff --git a/keras/engine/training.py b/keras/engine/training.py
-index 0a556f21..1a9a374e 100644
---- a/keras/engine/training.py
-+++ b/keras/engine/training.py
-@@ -328,7 +328,7 @@ class Model(Network):
-                 self.train_function = K.function(
-                     inputs,
-                     [self.total_loss] + metrics_tensors,
--                    updates=updates + metrics_updates,
-+                    updates=updates + metrics_updates + (self._other_metrics if hasattr(self, '_other_metrics') else []),
-                     name='train_function',
-                     **self._function_kwargs)
-'''
 class ExponentialMovingAverage:
+    """对模型权重进行指数滑动平均。
+    用法：在model.compile之后、第一次训练之前使用；
+    先初始化对象，然后执行inject方法。
+
+    训练：
+    EMAer = ExponentialMovingAverage(model) # 在模型compile之后执行
+    EMAer.initialize() # 在模型compile之后执行
+    EMAer.ema_on_batch() # 每个batch完成后执行
+
+    预测：
+    EMAer.apply_ema_weights() # 将EMA的权重应用到模型中
+    model.predict(x_test) # 进行预测、验证、保存等操作
+
+    继续训练：
+    EMAer.reset_old_weights() # 继续训练之前，要恢复模型旧权重。还是那句话，EMA不影响模型的优化轨迹。
+    """
+    def __init__(self, model, momentum=0.999):
+        self.momentum = momentum
+        self.model = model
+    def inject(self):
+        """与旧代码兼容
+        """
+        self.initialize()
+    def initialize(self):
+        """ema_weights初始化跟原模型初始化一致。
+        """
+        self.old_weights = K.batch_get_value(self.model.weights)
+        self.mv_trainable_weights_vals = {x.name: K.get_value(x) for x in
+                                          self.model.trainable_weights}
+    def apply_ema_weights(self):
+        """备份原模型权重，然后将平均权重应用到模型上去。
+        """
+        self.old_weights = K.batch_get_value(self.model.weights)
+        for weight in self.model.trainable_weights:
+             K.set_value(weight, self.mv_trainable_weights_vals[weight.name])
+    def reset_old_weights(self):
+        """恢复模型到旧权重。
+        """
+        K.batch_set_value(zip(self.model.weights, self.old_weights))
+    def ema_on_batch(self):
+        for weight in self.model.trainable_weights:
+            old_val = self.mv_trainable_weights_vals[weight.name]
+            self.mv_trainable_weights_vals[weight.name] -= \
+                (1.0 - self.momentum) * (old_val - K.get_value(weight))
+
+
+class ExponentialMovingAverage_NEED_Keras_patch:
     """对模型权重进行指数滑动平均。
     用法：在model.compile之后、第一次训练之前使用；
     先初始化对象，然后执行inject方法。
@@ -76,6 +108,21 @@ class ExponentialMovingAverage:
     EMAer.reset_old_weights() # 继续训练之前，要恢复模型旧权重。还是那句话，EMA不影响模型的优化轨迹。
     model.fit(x_train, y_train) # 继续训练
     """
+    '''
+    权重滑动平均 EMA （需要给Keras 2.3.1打个补丁，才能生效） 
+    diff --git a/keras/engine/training.py b/keras/engine/training.py
+    index 0a556f21..1a9a374e 100644
+    --- a/keras/engine/training.py
+    +++ b/keras/engine/training.py
+    @@ -328,7 +328,7 @@ class Model(Network):
+                     self.train_function = K.function(
+                         inputs,
+                         [self.total_loss] + metrics_tensors,
+    -                    updates=updates + metrics_updates,
+    +                    updates=updates + metrics_updates + (self._other_metrics if hasattr(self, '_other_metrics') else []),
+                         name='train_function',
+                         **self._function_kwargs)
+    '''
     def __init__(self, model, momentum=0.999):
         self.momentum = momentum
         self.model = model

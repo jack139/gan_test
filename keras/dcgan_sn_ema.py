@@ -161,7 +161,7 @@ def sample(path):
 
 iters_per_sample = 100
 total_iter = 1000000
-batch_size = 28
+batch_size = 64
 img_generator = data_generator(batch_size)
 
 for i in range(total_iter):
@@ -172,6 +172,7 @@ for i in range(total_iter):
     for j in range(2):
         z_sample = np.random.randn(batch_size, z_dim)
         g_loss = g_train_model.train_on_batch(z_sample, None)
+        EMAer_g_train.ema_on_batch()
     if i % 10 == 0:
         print('iter: %s, d_loss: %s, g_loss: %s' % (i, d_loss, g_loss))
     if i % iters_per_sample == 0:

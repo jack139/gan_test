@@ -275,6 +275,7 @@ if __name__ == '__main__':
             z_sample = np.random.randn(len(x_sample), z_dim)
             g_loss = g_train_model.train_on_batch(
                 [x_sample, z_sample], None)
+            EMAer_g_train.ema_on_batch()
         if i % 10 == 0:
             print('iter: %s, d_loss: %s, g_loss: %s' % (i, d_loss, g_loss))
         if i % iters_per_sample == 0:
