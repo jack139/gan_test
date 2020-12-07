@@ -18,8 +18,8 @@ from utils import ExponentialMovingAverage
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
-imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
-#imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
+#imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
+imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
 
 
@@ -115,12 +115,9 @@ x_fake_score = d_model(x_fake)
 d_train_model = Model([x_in, z_in],
                       [x_real_score, x_fake_score])
 
-d_r_loss = K.binary_crossentropy(K.ones_like(x_real_score), x_real_score)
-d_f_loss = K.binary_crossentropy(K.zeros_like(x_fake_score), x_fake_score)
-d_loss = (d_r_loss + d_f_loss) / 2.0
+d_loss = K.mean(- K.log(x_real_score + 1e-9) - K.log(1 - x_fake_score + 1e-9))
 d_train_model.add_loss(d_loss)
 d_train_model.compile(optimizer=Adam(2e-4, 0.5))
-
 
 # 整合模型（训练生成器）
 g_model.trainable = True
@@ -134,7 +131,7 @@ g_train_model = Model([x_in, z_in], x_fake_score)
 g_loss = K.binary_crossentropy(K.ones_like(x_fake_score), x_fake_score)
 g_loss_plus = losses.mean_squared_error(x_in, x_fake) * 5 # new regularization
 g_loss += g_loss_plus
-g_train_model.add_loss(g_loss)
+g_train_model.add_loss(K.mean(g_loss))
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
@@ -173,9 +170,9 @@ for i in range(total_iter):
         z_sample = np.random.randn(batch_size, z_dim)
         d_loss = d_train_model.train_on_batch(
             [next(img_generator), z_sample], None)
-    z_sample = np.random.randn(batch_size, z_dim)
-    z_fake = g_model.predict(z_sample)
     for j in range(2):
+        z_sample = np.random.randn(batch_size, z_dim)
+        z_fake = g_model.predict(z_sample)
         g_loss = g_train_model.train_on_batch(
             [z_fake, z_sample], None)
         if EMA:
@@ -183,9 +180,10 @@ for i in range(total_iter):
     if i % 10 == 0:
         print('iter: %s, d_loss: %s, g_loss: %s' % (i, d_loss, g_loss))
     if i % iters_per_sample == 0:
-        if EMA:
-            EMAer_g_train.apply_ema_weights() # 将EMA的权重应用到模型中
         sample('samples/test_%s.png' % i)
         g_train_model.save_weights('./g_train_model.weights')
         if EMA:
+            EMAer_g_train.apply_ema_weights() # 将EMA的权重应用到模型中
+            sample('samples/test_ema_%s.png' % i)
+            g_train_model.save_weights('./g_train_ema_model.weights')
             EMAer_g_train.reset_old_weights() # 继续训练之前，要恢复模型旧权重
