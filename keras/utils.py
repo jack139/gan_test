@@ -2,6 +2,24 @@
 
 import numpy as np
 from keras import backend as K
+import imageio
+
+
+# 采样函数
+def sample(path, g_model, img_dim, z_dim, n=9, z_samples=None):
+    figure = np.zeros((img_dim * n, img_dim * n, 3))
+    if z_samples is None:
+        z_samples = np.random.randn(n**2, z_dim)
+    for i in range(n):
+        for j in range(n):
+            z_sample = z_samples[[i * n + j]]
+            x_sample = g_model.predict(z_sample)
+            digit = x_sample[0]
+            figure[i * img_dim:(i + 1) * img_dim,
+                   j * img_dim:(j + 1) * img_dim] = digit
+    figure = (figure + 1) / 2 * 255
+    figure = np.round(figure, 0).astype(np.uint8)
+    imageio.imwrite(path, figure)
 
 
 # 谱归一化
