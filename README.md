@@ -14,6 +14,12 @@
 | :----------------------------------------------------------: | :----------------------------------------------------------: |
 | <img src="keras/results/dcgan_reg_3000.png" alt="dcgan_reg_3000" width="350" /> | <img src="keras/results/dcgan_reg_5000.png" alt="dcgan_reg_5000" width="350" /> |
 
+#### DCGAN + 正则项 + EMA
+
+|                          iter 3000                           |                          iter 5000                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="keras/results/dcgan_reg_ema_3000.png" alt="dcgan_reg_ema_3000" width="350" /> | <img src="keras/results/dcgan_reg_ema_5000.png" alt="dcgan_reg_ema_5000" width="350" /> |
+
 #### DCGAN + SN
 
 |                          iter 3000                           |                          iter 5000                           |
