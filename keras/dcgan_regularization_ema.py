@@ -10,7 +10,7 @@ from keras.optimizers import Adam
 from keras import losses
 from keras.preprocessing.image import ImageDataGenerator
 from utils import sample, ExponentialMovingAverage
-from models import load_model
+from models import *
 
 
 if not os.path.exists('samples'):
@@ -18,14 +18,14 @@ if not os.path.exists('samples'):
 
 img_dim = 64
 z_dim = 100
-EMA = False # whether use EMA
+EMA = True # whether use EMA
 total_iter = 1000000
 batch_size = 64
 iters_per_sample = 100 # 采样频率
 
 
-img_dir = '/media/gt/_dde_data/Datasets/CASIA-maxpy-clean'
-#img_dir = '../../datasets/CASIA-maxpy-clean'
+#img_dir = '/media/gt/_dde_data/Datasets/CASIA-maxpy-clean'
+img_dir = '../../datasets/CASIA-maxpy-clean'
 
 # 数据生成器
 img_datagen = ImageDataGenerator(
@@ -41,7 +41,7 @@ img_generator = img_datagen.flow_from_directory(
 
 
 # 载入基本模型： 判别器，生成器
-d_model, g_model = load_model(img_dim, z_dim, 'sigmoid')
+d_model, g_model = load_model_3(img_dim, z_dim, 'sigmoid')
 d_model.summary()
 g_model.summary()
 
@@ -91,10 +91,8 @@ if EMA:
 # 训练
 for i in range(total_iter):
     for j in range(1):
-        z_sample = np.random.randn(batch_size, z_dim)
         next_batch = next(img_generator)
-        if next_batch.shape[0]<batch_size: # 数据量有可能不能与batch_size对齐
-            next_batch = next(img_generator)
+        z_sample = np.random.randn(len(next_batch), z_dim)       
         d_loss = d_train_model.train_on_batch(
             [next_batch, z_sample], None)
     for j in range(2):

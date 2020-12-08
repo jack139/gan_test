@@ -114,15 +114,11 @@ if __name__ == '__main__':
     for i in range(total_iter):
         for j in range(2):
             x_sample = next(img_generator)
-            if x_sample.shape[0]<batch_size: # 数据量有可能不能与batch_size对齐
-                x_sample = next(img_generator)
             z_sample = np.random.randn(len(x_sample), z_dim)
             d_loss = d_train_model.train_on_batch(
                 [x_sample, z_sample], None)
         for j in range(1):
             x_sample = next(img_generator)
-            if x_sample.shape[0]<batch_size: # 数据量有可能不能与batch_size对齐
-                x_sample = next(img_generator)
             z_sample = np.random.randn(len(x_sample), z_dim)
             g_loss = g_train_model.train_on_batch(
                 [x_sample, z_sample], None)

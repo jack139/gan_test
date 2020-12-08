@@ -36,7 +36,7 @@ def load_model(img_dim, z_dim, activation=None, sn=False, use_bias=True):
         x = LeakyReLU(0.2)(x)
 
     x = Flatten()(x)
-    x = SN(Dense(1, use_bias=use_bias, activation=activation, ))(x)
+    x = SN(Dense(1, use_bias=use_bias, activation=activation))(x)
 
     d_model = Model(x_in, x)
 
@@ -66,6 +66,126 @@ def load_model(img_dim, z_dim, activation=None, sn=False, use_bias=True):
     z = Activation('tanh')(z)
 
     g_model = Model(z_in, z)
+
+    return d_model, g_model
+
+
+
+# 生成器和判别器 模型
+def load_model_2(img_dim, z_dim, activation=None, sn=False, use_bias=True):
+    num_layers = int(np.log2(img_dim)) - 3
+    if img_dim > 256:
+        max_num_channels = img_dim * 4
+    else:    
+        max_num_channels = img_dim * 8
+    f_size = img_dim // 2**(num_layers + 1)
+
+    # 谱归一化
+    if sn:
+        SN = SpectralNormalization
+    else:
+        SN = lambda xx: xx
+
+    # 判别器
+    x_in = Input(shape=(img_dim, img_dim, 3))
+    x = x_in
+
+    x = SN(Conv2D(128, 3))(x)
+    x = LeakyReLU()(x)
+    x = SN(Conv2D(128, 4, strides=2))(x)
+    x = LeakyReLU()(x)
+    x = SN(Conv2D(128, 4, strides=2))(x)
+    x = LeakyReLU()(x)
+    x = SN(Conv2D(128, 4, strides=2))(x)
+    x = LeakyReLU()(x)
+    x = Flatten()(x)
+    x = Dropout(0.4)(x)
+    x = SN(Dense(1, use_bias=use_bias, activation=activation))(x)
+
+    d_model = Model(x_in, x)
+
+    # 生成器
+    z_in = Input(shape=(z_dim, ))
+    z = z_in
+
+    z = Dense(128 * (img_dim//2) * (img_dim//2))(z_in)
+    z = LeakyReLU()(z)
+    z = Reshape((img_dim//2, img_dim//2, 128))(z)
+    z = Conv2D(128, 4, padding='same')(z)
+    z = LeakyReLU()(z)
+    z = Conv2DTranspose(128, 4, strides=2, padding='same')(z)
+    z = LeakyReLU()(z)
+    z = Conv2D(128, 4, padding='same')(z)
+    z = LeakyReLU()(z)
+    z = Conv2D(128, 4, padding='same')(z)
+    z = LeakyReLU()(z)
+    z = Conv2D(3, 7, activation='tanh', padding='same')(z)
+
+    g_model = Model(z_in, z)
+
+
+    return d_model, g_model
+
+
+# 生成器和判别器 模型
+def load_model_3(img_dim, z_dim, activation=None, sn=False, use_bias=True):
+    num_layers = int(np.log2(img_dim)) - 3
+    if img_dim > 256:
+        max_num_channels = img_dim * 4
+    else:    
+        max_num_channels = img_dim * 8
+    f_size = img_dim // 2**(num_layers + 1)
+
+    # 谱归一化
+    if sn:
+        SN = SpectralNormalization
+    else:
+        SN = lambda xx: xx
+
+    # 判别器
+    x_in = Input(shape=(img_dim, img_dim, 3))
+    x = x_in
+
+    x = SN(Conv2D(32, 3, strides=2, padding='same'))(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(0.25)(x)
+    x = SN(Conv2D(64, 3, strides=2, padding='same'))(x)
+    x = ZeroPadding2D(padding=((0,1),(0,1)))(x)
+    x = SN(BatchNormalization(momentum=0.8))(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(0.25)(x)
+    x = SN(Conv2D(128, 3, strides=2, padding='same'))(x)
+    x = SN(BatchNormalization(momentum=0.8))(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(0.25)(x)
+    x = SN(Conv2D(256, 3, strides=2, padding='same'))(x)
+    x = SN(BatchNormalization(momentum=0.8))(x)
+    x = LeakyReLU(alpha=0.2)(x)
+    x = Dropout(0.25)(x)
+    x = Flatten()(x)
+    x = SN(Dense(1, use_bias=use_bias, activation=activation))(x)
+
+    d_model = Model(x_in, x)
+
+    # 生成器
+    z_in = Input(shape=(z_dim, ))
+    z = z_in
+
+    z = Dense(128 * (img_dim//4) * (img_dim//4))(z_in)
+    z = LeakyReLU(alpha=0.2)(z)
+    z = Reshape((img_dim//4, img_dim//4, 128))(z)
+    z = UpSampling2D()(z)
+    z = Conv2D(128, 4, padding='same')(z)
+    z = BatchNormalization(momentum=0.8)(z)
+    z = LeakyReLU(alpha=0.2)(z)
+    z = UpSampling2D()(z)
+    z = Conv2D(64, 4, padding='same')(z)
+    z = BatchNormalization(momentum=0.8)(z)
+    z = LeakyReLU(alpha=0.2)(z)
+    z = Conv2D(3, 7, activation='tanh', padding='same')(z)
+
+    g_model = Model(z_in, z)
+
 
     return d_model, g_model
 
