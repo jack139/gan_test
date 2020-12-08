@@ -87,17 +87,13 @@ g_train_model.summary()
 
 for i in range(total_iter):
     for j in range(1):
-        z_sample = np.random.randn(batch_size, z_dim)
         next_batch = next(img_generator)
-        if next_batch.shape[0]<batch_size: # 数据量有可能不能与batch_size对齐
-            next_batch = next(img_generator)
+        z_sample = np.random.randn(len(next_batch), z_dim)       
         d_loss = d_train_model.train_on_batch(
             [next_batch, z_sample], None)
     for j in range(2):
-        z_sample = np.random.randn(batch_size, z_dim)
         next_batch = next(img_generator)
-        if next_batch.shape[0]<batch_size: # 数据量有可能不能与batch_size对齐
-            next_batch = next(img_generator)        
+        z_sample = np.random.randn(len(next_batch), z_dim)       
         g_loss = g_train_model.train_on_batch(
             [next_batch, z_sample], None)
     if i % 10 == 0:
