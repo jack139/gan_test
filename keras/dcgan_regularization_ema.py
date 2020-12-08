@@ -18,8 +18,8 @@ from utils import ExponentialMovingAverage
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
-#imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
-imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
+imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
+#imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
 
 
@@ -28,6 +28,9 @@ height, width = imageio.imread(imgs[0]).shape[:2]
 center_height = int((height - width) / 2)
 img_dim = 64
 z_dim = 100
+num_layers = int(np.log2(img_dim)) - 3
+max_num_channels = img_dim * 8
+f_size = img_dim // 2**(num_layers + 1)
 EMA = False # whether use EMA
 
 def imread(f):
@@ -55,19 +58,15 @@ def data_generator(batch_size=32):
 x_in = Input(shape=(img_dim, img_dim, 3))
 x = x_in
 
-x = Conv2D(img_dim,
-           (5, 5),
-           strides=(2, 2),
-           padding='same')(x)
-x = LeakyReLU()(x)
-
-for i in range(3):
-    x = Conv2D(img_dim * 2**(i + 1),
+for i in range(num_layers + 1):
+    num_channels = max_num_channels // 2**(num_layers - i)
+    x = Conv2D(num_channels,
                (5, 5),
                strides=(2, 2),
                padding='same')(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU()(x)
+    if i > 0:
+        x = BatchNormalization()(x)
+    x = LeakyReLU(0.2)(x)
 
 x = Flatten()(x)
 x = Dense(1, activation='sigmoid')(x)
@@ -80,13 +79,14 @@ d_model.summary()
 z_in = Input(shape=(z_dim, ))
 z = z_in
 
-z = Dense(4 * 4 * img_dim * 8)(z)
+z = Dense(f_size**2 * max_num_channels)(z)
 z = BatchNormalization()(z)
 z = Activation('relu')(z)
-z = Reshape((4, 4, img_dim * 8))(z)
+z = Reshape((f_size, f_size, max_num_channels))(z)
 
-for i in range(3):
-    z = Conv2DTranspose(img_dim * 4 // 2**i,
+for i in range(num_layers):
+    num_channels = max_num_channels // 2**(i + 1)
+    z = Conv2DTranspose(num_channels,
                         (5, 5),
                         strides=(2, 2),
                         padding='same')(z)
@@ -129,7 +129,7 @@ g_train_model = Model([x_in, z_in], x_fake_score)
 
 # 正则项参考 https://kexue.fm/archives/5716
 g_loss = K.binary_crossentropy(K.ones_like(x_fake_score), x_fake_score)
-g_loss_plus = losses.mean_squared_error(x_in, x_fake) * 5 # new regularization
+g_loss_plus = K.mean(losses.mean_squared_error(x_in, x_fake)) * 5 # new regularization
 g_loss += g_loss_plus
 g_train_model.add_loss(K.mean(g_loss))
 g_train_model.compile(optimizer=Adam(2e-4, 0.5))
