@@ -3,9 +3,10 @@
 import numpy as np
 from keras.layers import *
 from keras.models import Model
+from utils import SpectralNormalization
 
 # 生成器和判别器 模型
-def load_model(img_dim, z_dim, activation=None):
+def load_model(img_dim, z_dim, activation=None, sn=False, use_bias=True):
     num_layers = int(np.log2(img_dim)) - 3
     if img_dim > 256:
         max_num_channels = img_dim * 4
@@ -13,22 +14,29 @@ def load_model(img_dim, z_dim, activation=None):
         max_num_channels = img_dim * 8
     f_size = img_dim // 2**(num_layers + 1)
 
+    # 谱归一化
+    if sn:
+        SN = SpectralNormalization
+    else:
+        SN = lambda xx: xx
+
     # 判别器
     x_in = Input(shape=(img_dim, img_dim, 3))
     x = x_in
 
     for i in range(num_layers + 1):
         num_channels = max_num_channels // 2**(num_layers - i)
-        x = Conv2D(num_channels,
+        x = SN(Conv2D(num_channels,
                    (4, 4),
                    strides=(2, 2),
-                   padding='same')(x)
+                   use_bias=use_bias,
+                   padding='same'))(x)
         if i > 0:
-            x = BatchNormalization()(x)
+            x = SN(BatchNormalization())(x)
         x = LeakyReLU(0.2)(x)
 
     x = Flatten()(x)
-    x = Dense(1, activation=activation)(x)
+    x = SN(Dense(1, use_bias=use_bias, activation=activation, ))(x)
 
     d_model = Model(x_in, x)
 

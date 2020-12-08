@@ -22,7 +22,7 @@ EMA = False # whether use EMA
 total_iter = 1000000
 batch_size = 64
 iters_per_sample = 100 # 采样频率
-samples_num = 9 # 采样数量
+
 
 img_dir = '/media/gt/_dde_data/Datasets/CASIA-maxpy-clean'
 #img_dir = '../../datasets/CASIA-maxpy-clean'

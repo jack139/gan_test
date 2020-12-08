@@ -3,177 +3,48 @@ import os
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 import numpy as np
-import scipy as sp
-#from scipy import misc
-import glob
-import imageio
 from keras.models import Model
-from keras.layers import *
+from keras.layers import Input
 from keras import backend as K
 from keras.optimizers import Adam
-from keras.applications.inception_v3 import InceptionV3,preprocess_input
-from PIL import Image
-from utils import ExponentialMovingAverage
+from keras.preprocessing.image import ImageDataGenerator
+from utils import sample, ExponentialMovingAverage
+from models import load_model
+
 
 
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
 
-#imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
-imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
-np.random.shuffle(imgs)
 img_dim = 64
-z_dim = 128
-num_layers = int(np.log2(img_dim)) - 3
-max_num_channels = img_dim * 8
-f_size = img_dim // 2**(num_layers + 1)
-batch_size = 64
+z_dim = 100
+EMA = False # whether use EMA
 L1_or_L2 = 'L1' #  L1 或 L2
+total_iter = 1000000
+batch_size = 64
+iters_per_sample = 100 # 采样频率
 
 
-def imread(f, mode='gan'):
-    #x = misc.imread(f, mode='RGB')
-    x = imageio.imread(f, as_gray=False, pilmode="RGB")
-    if mode == 'gan':
-        #x = misc.imresize(x, (img_dim, img_dim))
-        im = Image.fromarray(x)
-        x = np.array(im.resize((img_dim, img_dim), Image.BICUBIC))
-        return x.astype(np.float32) / 255 * 2 - 1
-    elif mode == 'fid':
-        #x = misc.imresize(x, (299, 299))
-        im = Image.fromarray(x)
-        x = np.array(im.resize((299, 299), Image.BICUBIC))
-        return x.astype(np.float32)
+img_dir = '/media/gt/_dde_data/Datasets/CASIA-maxpy-clean'
+#img_dir = '../../datasets/CASIA-maxpy-clean'
+
+# 数据生成器
+img_datagen = ImageDataGenerator(
+    preprocessing_function=lambda x: x.astype(np.float32) / 255 * 2 - 1,
+    zoom_range=0.0 # 缩放， 0.5 放大
+)
+img_generator = img_datagen.flow_from_directory(
+    img_dir,
+    target_size=(img_dim, img_dim),
+    batch_size=batch_size,
+    class_mode=None # 只生成图片，不生成标签
+)
 
 
-class img_generator:
-    """图片迭代器，方便重复调用
-    """
-    def __init__(self, imgs, mode='gan', batch_size=64):
-        self.imgs = imgs
-        self.batch_size = batch_size
-        self.mode = mode
-        if len(imgs) % batch_size == 0:
-            self.steps = len(imgs) // batch_size
-        else:
-            self.steps = len(imgs) // batch_size + 1
-    def __len__(self):
-        return self.steps
-    def __iter__(self):
-        X = []
-        while True:
-            np.random.shuffle(self.imgs)
-            for i,f in enumerate(self.imgs):
-                X.append(imread(f, self.mode))
-                if len(X) == self.batch_size or i == len(self.imgs)-1:
-                    X = np.array(X)
-                    yield X
-                    X = []
-
-'''
-class FID:
-    """基于Python的FID计算
-    """
-    def __init__(self, x_real,
-                 from_generator=False,
-                 batch_size=None,
-                 steps=None):
-        """初始化，把真实样本的统计结果存起来，以便多次测试
-        """
-        self.base_model = InceptionV3(include_top=False,
-                                      pooling='avg')
-        self.mu_real,self.sigma_real = self.evaluate_mu_sigma(x_real,
-                                                              from_generator,
-                                                              batch_size,
-                                                              steps)
-    def evaluate_mu_sigma(self, x,
-                          from_generator=False,
-                          batch_size=None,
-                          steps=None):
-        """根据样本计算均值和协方差矩阵
-        """
-        if from_generator:
-            steps = steps if steps else len(x)
-            def _generator():
-                for _x in x:
-                    _x = preprocess_input(_x.copy())
-                    yield _x
-            h = self.base_model.predict_generator(_generator(),
-                                                  verbose=True,
-                                                  steps=steps)
-        else:
-            x = preprocess_input(x.copy())
-            h = self.base_model.predict(x,
-                                        verbose=True,
-                                        batch_size=batch_size)
-        mu = h.mean(0)
-        sigma = np.cov(h.T)
-        return mu,sigma
-    def evaluate(self, x_fake,
-                 from_generator=False,
-                 batch_size=None,
-                 steps=None):
-        """计算FID值
-        """
-        mu_real,sigma_real = self.mu_real,self.sigma_real
-        mu_fake,sigma_fake = self.evaluate_mu_sigma(x_fake,
-                                                    from_generator,
-                                                    batch_size,
-                                                    steps)
-        mu_diff = mu_real - mu_fake
-        sigma_root = sp.linalg.sqrtm(sigma_real.dot(sigma_fake), disp=False)[0]
-        sigma_diff = sigma_real + sigma_fake - 2 * sigma_root
-        return np.real((mu_diff**2).sum() + np.trace(sigma_diff))
-'''
-
-# 判别器
-x_in = Input(shape=(img_dim, img_dim, 3))
-x = x_in
-
-for i in range(num_layers + 1):
-    num_channels = max_num_channels // 2**(num_layers - i)
-    x = Conv2D(num_channels,
-               (5, 5),
-               strides=(2, 2),
-               use_bias=False,
-               padding='same')(x)
-    if i > 0:
-        x = BatchNormalization()(x)
-    x = LeakyReLU(0.2)(x)
-
-x = Flatten()(x)
-x = Dense(1, use_bias=False)(x)
-
-d_model = Model(x_in, x)
+# 载入基本模型： 判别器，生成器
+d_model, g_model = load_model(img_dim, z_dim, use_bias=False)
 d_model.summary()
-
-
-# 生成器
-z_in = Input(shape=(z_dim, ))
-z = z_in
-
-z = Dense(f_size**2 * max_num_channels)(z)
-z = BatchNormalization()(z)
-z = Activation('relu')(z)
-z = Reshape((f_size, f_size, max_num_channels))(z)
-
-for i in range(num_layers):
-    num_channels = max_num_channels // 2**(i + 1)
-    z = Conv2DTranspose(num_channels,
-                        (5, 5),
-                        strides=(2, 2),
-                        padding='same')(z)
-    z = BatchNormalization()(z)
-    z = Activation('relu')(z)
-
-z = Conv2DTranspose(3,
-                    (5, 5),
-                    strides=(2, 2),
-                    padding='same')(z)
-z = Activation('tanh')(z)
-
-g_model = Model(z_in, z)
 g_model.summary()
 
 
@@ -228,76 +99,42 @@ g_train_model.summary()
 
 
 # EMA
-EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
-EMAer_g_train.inject() # 在模型compile之后执行
-
-
-# 采样函数
-def sample(path, n=9, z_samples=None):
-    figure = np.zeros((img_dim * n, img_dim * n, 3))
-    if z_samples is None:
-        z_samples = np.random.randn(n**2, z_dim)
-    for i in range(n):
-        for j in range(n):
-            z_sample = z_samples[[i * n + j]]
-            x_sample = g_model.predict(z_sample)
-            digit = x_sample[0]
-            figure[i * img_dim:(i + 1) * img_dim,
-                   j * img_dim:(j + 1) * img_dim] = digit
-    figure = (figure + 1) / 2 * 255
-    figure = np.round(figure, 0).astype(np.uint8)
-    imageio.imwrite(path, figure)
+if EMA:
+    EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
+    EMAer_g_train.inject() # 在模型compile之后执行
 
 
 if __name__ == '__main__':
 
     import json
 
-    iters_per_sample = 100
-    fid_per_sample = 1000
-    total_iter = 1000000
     n_size = 9
-    img_data = img_generator(imgs, 'gan', batch_size).__iter__()
     Z = np.random.randn(n_size**2, z_dim)
-    logs = {'fid': [], 'best': 1000}
-
-    #print('初始化FID评估器...')
-    #fid_evaluator = FID(img_generator(imgs, 'fid', batch_size), True)
 
     for i in range(total_iter):
         for j in range(2):
-            x_sample = next(img_data)
+            x_sample = next(img_generator)
+            if x_sample.shape[0]<batch_size: # 数据量有可能不能与batch_size对齐
+                x_sample = next(img_generator)
             z_sample = np.random.randn(len(x_sample), z_dim)
             d_loss = d_train_model.train_on_batch(
                 [x_sample, z_sample], None)
         for j in range(1):
-            x_sample = next(img_data)
+            x_sample = next(img_generator)
+            if x_sample.shape[0]<batch_size: # 数据量有可能不能与batch_size对齐
+                x_sample = next(img_generator)
             z_sample = np.random.randn(len(x_sample), z_dim)
             g_loss = g_train_model.train_on_batch(
                 [x_sample, z_sample], None)
-            EMAer_g_train.ema_on_batch()
+            if EMA:
+                EMAer_g_train.ema_on_batch()
         if i % 10 == 0:
             print('iter: %s, d_loss: %s, g_loss: %s' % (i, d_loss, g_loss))
         if i % iters_per_sample == 0:
-            EMAer_g_train.apply_ema_weights() # 将EMA的权重应用到模型中
-            sample('samples/test_%s.png' % i, n_size, Z)
+            sample('samples/test_%s.png' % i, g_model, img_dim, z_dim, n=n_size, z_samples=Z)
             g_train_model.save_weights('./g_train_model.weights')
-            EMAer_g_train.reset_old_weights() # 继续训练之前，要恢复模型旧权重
-        #if i % fid_per_sample == 0:
-        #    def _generator():
-        #        while True:
-        #            _z_fake = np.random.randn(100, z_dim)
-        #            _x_fake = g_model.predict(_z_fake,
-        #                                      batch_size=batch_size)
-        #            _x_fake = np.round((_x_fake + 1) / 2 * 255, 0)
-        #            _x_fake = np.array([misc.imresize(_x, (299, 299)) for _x in _x_fake])
-        #            yield _x_fake
-        #    fid = fid_evaluator.evaluate(_generator(), True, steps=100)
-        #    logs['fid'].append((i, fid))
-        #    if fid < logs['best']:
-        #        logs['best'] = fid
-        #        g_train_model.save_weights('./g_train_model.best.weights')
-        #    json.dump(logs, open('logs.txt', 'w'), indent=4)
-        #    print('iter: %s, fid: %s, best: %s' % (i, fid, logs['best']))
-        #if i > 10000:
-        #    fid_per_sample = 100
+            if EMA:
+                EMAer_g_train.apply_ema_weights() # 将EMA的权重应用到模型中
+                sample('samples/test_ema_%s.png' % i, g_model, img_dim, z_dim, n=n_size, z_samples=Z)
+                g_train_model.save_weights('./g_train_ema_model.weights')
+                EMAer_g_train.reset_old_weights() # 继续训练之前，要恢复模型旧权重

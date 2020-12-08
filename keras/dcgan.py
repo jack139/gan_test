@@ -3,7 +3,6 @@ import os
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 import numpy as np
-#from scipy import misc
 import glob
 import imageio
 from keras.models import Model
@@ -20,7 +19,6 @@ imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
 np.random.shuffle(imgs)
 
 
-#height, width = misc.imread(imgs[0]).shape[:2]
 height, width = imageio.imread(imgs[0]).shape[:2]
 center_height = int((height - width) / 2)
 img_dim = 64
@@ -28,10 +26,8 @@ z_dim = 100
 
 
 def imread(f):
-    #x = misc.imread(f)
     x = imageio.imread(f)
     x = x[center_height:center_height + width, :]
-    #x = misc.imresize(x, (img_dim, img_dim))
     im = Image.fromarray(x)
     x = np.array(im.resize((img_dim, img_dim), Image.BICUBIC))
     return x.astype(np.float32) / 255 * 2 - 1

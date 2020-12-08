@@ -6,103 +6,45 @@ import os
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 import numpy as np
-#from scipy import misc
-import glob
-import imageio
 from keras.models import Model
-from keras.layers import *
+from keras.layers import Input
 from keras import backend as K
 from keras.optimizers import Adam
-from PIL import Image
-from utils import SpectralNormalization, ExponentialMovingAverage
+from keras.preprocessing.image import ImageDataGenerator
+from utils import sample, ExponentialMovingAverage
+from models import load_model
 
 
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
-#imgs = glob.glob('/media/gt/_dde_data/Datasets/CASIA-maxpy-clean/*/*.jpg')
-imgs = glob.glob('../../datasets/CASIA-maxpy-clean/*/*.jpg')
-np.random.shuffle(imgs)
-
-
-#height, width = misc.imread(imgs[0]).shape[:2]
-height, width = imageio.imread(imgs[0]).shape[:2]
-center_height = int((height - width) / 2)
 img_dim = 64
 z_dim = 100
+EMA = False # whether use EMA
+total_iter = 1000000
+batch_size = 64
+iters_per_sample = 100 # 采样频率
 
 
-def imread(f):
-    #x = misc.imread(f)
-    x = imageio.imread(f)
-    x = x[center_height:center_height + width, :]
-    #x = misc.imresize(x, (img_dim, img_dim))
-    im = Image.fromarray(x)
-    x = np.array(im.resize((img_dim, img_dim), Image.BICUBIC))
-    return x.astype(np.float32) / 255 * 2 - 1
+img_dir = '/media/gt/_dde_data/Datasets/CASIA-maxpy-clean'
+#img_dir = '../../datasets/CASIA-maxpy-clean'
+
+# 数据生成器
+img_datagen = ImageDataGenerator(
+    preprocessing_function=lambda x: x.astype(np.float32) / 255 * 2 - 1,
+    zoom_range=0.0 # 缩放， 0.5 放大
+)
+img_generator = img_datagen.flow_from_directory(
+    img_dir,
+    target_size=(img_dim, img_dim),
+    batch_size=batch_size,
+    class_mode=None # 只生成图片，不生成标签
+)
 
 
-def data_generator(batch_size=32):
-    X = []
-    while True:
-        np.random.shuffle(imgs)
-        for f in imgs:
-            X.append(imread(f))
-            if len(X) == batch_size:
-                X = np.array(X)
-                yield X
-                X = []
-
-
-# 判别器
-x_in = Input(shape=(img_dim, img_dim, 3))
-x = x_in
-
-x = SpectralNormalization(Conv2D(img_dim,
-           (5, 5),
-           strides=(2, 2),
-           padding='same'))(x)
-x = LeakyReLU()(x)
-
-for i in range(3):
-    x = SpectralNormalization(Conv2D(img_dim * 2**(i + 1),
-               (5, 5),
-               strides=(2, 2),
-               padding='same'))(x)
-    x = SpectralNormalization(BatchNormalization())(x)
-    x = LeakyReLU()(x)
-
-x = Flatten()(x)
-x = SpectralNormalization(Dense(1, use_bias=False, activation='sigmoid'))(x)
-
-d_model = Model(x_in, x)
+# 载入基本模型： 判别器，生成器
+d_model, g_model = load_model(img_dim, z_dim, 'sigmoid', sn=True)
 d_model.summary()
-
-
-# 生成器
-z_in = Input(shape=(z_dim, ))
-z = z_in
-
-z = Dense(4 * 4 * img_dim * 8)(z)
-z = BatchNormalization()(z)
-z = Activation('relu')(z)
-z = Reshape((4, 4, img_dim * 8))(z)
-
-for i in range(3):
-    z = Conv2DTranspose(img_dim * 4 // 2**i,
-                        (5, 5),
-                        strides=(2, 2),
-                        padding='same')(z)
-    z = BatchNormalization()(z)
-    z = Activation('relu')(z)
-
-z = Conv2DTranspose(3,
-                    (5, 5),
-                    strides=(2, 2),
-                    padding='same')(z)
-z = Activation('tanh')(z)
-
-g_model = Model(z_in, z)
 g_model.summary()
 
 
@@ -139,44 +81,32 @@ g_train_model.summary()
 
 
 # EMA
-EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
-EMAer_g_train.inject() # 在模型compile之后执行
+if EMA:
+    EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
+    EMAer_g_train.inject() # 在模型compile之后执行
 
 
-# 采样函数
-def sample(path):
-    n = 9
-    figure = np.zeros((img_dim * n, img_dim * n, 3))
-    for i in range(n):
-        for j in range(n):
-            z_sample = np.random.randn(1, z_dim)
-            x_sample = g_model.predict(z_sample)
-            digit = x_sample[0]
-            figure[i * img_dim:(i + 1) * img_dim,
-                   j * img_dim:(j + 1) * img_dim] = digit
-    figure = (figure + 1) / 2 * 255
-    figure = np.round(figure, 0).astype(np.uint8)
-    imageio.imwrite(path, figure)
-
-
-iters_per_sample = 100
-total_iter = 1000000
-batch_size = 64
-img_generator = data_generator(batch_size)
-
+# 训练
 for i in range(total_iter):
     for j in range(1):
         z_sample = np.random.randn(batch_size, z_dim)
+        next_batch = next(img_generator)
+        if next_batch.shape[0]<batch_size: # 数据量有可能不能与batch_size对齐
+            next_batch = next(img_generator)
         d_loss = d_train_model.train_on_batch(
-            [next(img_generator), z_sample], None)
+            [next_batch, z_sample], None)
     for j in range(2):
         z_sample = np.random.randn(batch_size, z_dim)
         g_loss = g_train_model.train_on_batch(z_sample, None)
-        EMAer_g_train.ema_on_batch()
+        if EMA:
+            EMAer_g_train.ema_on_batch()
     if i % 10 == 0:
         print('iter: %s, d_loss: %s, g_loss: %s' % (i, d_loss, g_loss))
     if i % iters_per_sample == 0:
-        EMAer_g_train.apply_ema_weights() # 将EMA的权重应用到模型中
-        sample('samples/test_%s.png' % i)
+        sample('samples/test_%s.png' % i, g_model, img_dim, z_dim)
         g_train_model.save_weights('./g_train_model.weights')
-        EMAer_g_train.reset_old_weights() # 继续训练之前，要恢复模型旧权重
+        if EMA:
+            EMAer_g_train.apply_ema_weights() # 将EMA的权重应用到模型中
+            sample('samples/test_ema_%s.png' % i, g_model, img_dim, z_dim)
+            g_train_model.save_weights('./g_train_ema_model.weights')
+            EMAer_g_train.reset_old_weights() # 继续训练之前，要恢复模型旧权重
