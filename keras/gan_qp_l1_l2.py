@@ -28,7 +28,7 @@ num_layers = int(np.log2(img_dim)) - 3
 max_num_channels = img_dim * 8
 f_size = img_dim // 2**(num_layers + 1)
 batch_size = 64
-L1_or_L2 = 'L2' #  L1 或 L2
+L1_or_L2 = 'L1' #  L1 或 L2
 
 
 def imread(f, mode='gan'):
