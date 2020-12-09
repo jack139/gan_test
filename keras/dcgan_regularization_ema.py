@@ -41,7 +41,7 @@ img_generator = img_datagen.flow_from_directory(
 
 
 # 载入基本模型： 判别器，生成器
-d_model, g_model = load_model_3(img_dim, z_dim, 'sigmoid')
+d_model, g_model = load_model(img_dim, z_dim, 'sigmoid')
 d_model.summary()
 g_model.summary()
 

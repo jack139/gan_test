@@ -19,7 +19,7 @@ if not os.path.exists('samples'):
 
 img_dim = 64
 z_dim = 100
-EMA = False # whether use EMA
+EMA = True # whether use EMA
 L1_or_L2 = 'L1' #  L1 或 L2
 total_iter = 1000000
 batch_size = 64

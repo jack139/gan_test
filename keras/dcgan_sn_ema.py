@@ -20,7 +20,7 @@ if not os.path.exists('samples'):
 
 img_dim = 64
 z_dim = 100
-EMA = False # whether use EMA
+EMA = True # whether use EMA
 total_iter = 1000000
 batch_size = 64
 iters_per_sample = 100 # 采样频率
