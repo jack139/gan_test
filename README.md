@@ -82,6 +82,24 @@
 
 
 
+### 生成大图测试
+
+> 运行参数： 
+
+```python
+img_img_dim = 64
+z_dim = 100
+L1_or_L2 = 'L1'
+batch_size = 64
+```
+
+|       |                          iter 10000                          |
+| :---: | :----------------------------------------------------------: |
+| 无EMA | <img src="keras/results/gan_qp_l1_256_10000.png" alt="gan_qp_l1_256_10000" width="600" /> |
+|  EMA  | <img src="keras/results/gan_qp_l1_ema_256_10000.png" alt="gan_qp_l1_ema_256_10000" width="600" /> |
+
+
+
 ### 在Keras 2.3.1使用权重滑动平均（EMA）的patch
 
 ```diff
