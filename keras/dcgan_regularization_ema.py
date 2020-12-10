@@ -2,13 +2,17 @@
 import os
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
+# AMP要使用 tf.keras 
+os.environ["TF_KERAS"] = "1"
+
 import numpy as np
-from keras.layers import Input
-from keras.models import Model
-from keras import backend as K
-from keras.optimizers import Adam
-from keras import losses
-from keras.preprocessing.image import ImageDataGenerator
+import tensorflow as tf
+from tensorflow.keras.layers import Input
+from tensorflow.keras.models import Model
+from tensorflow.keras import backend as K
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import losses
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from utils import sample, ExponentialMovingAverage
 from models import *
 
@@ -45,6 +49,9 @@ d_model, g_model = load_model(img_dim, z_dim, 'sigmoid', self_mode=True)
 d_model.summary()
 g_model.summary()
 
+# AMP 混合精度
+opt = Adam(2e-4, 0.5)
+opt = tf.train.experimental.enable_mixed_precision_graph_rewrite(opt)
 
 # 整合模型（训练判别器）
 x_in = Input(shape=(img_dim, img_dim, 3))
@@ -60,7 +67,7 @@ d_train_model = Model([x_in, z_in],
 
 d_loss = K.mean(- K.log(x_real_score + 1e-9) - K.log(1 - x_fake_score + 1e-9))
 d_train_model.add_loss(d_loss)
-d_train_model.compile(optimizer=Adam(2e-4, 0.5))
+d_train_model.compile(optimizer=opt)
 
 # 整合模型（训练生成器）
 g_model.trainable = True
@@ -75,7 +82,7 @@ g_loss = K.binary_crossentropy(K.ones_like(x_fake_score), x_fake_score)
 g_loss_plus = K.mean(losses.mean_squared_error(x_in, x_fake)) * 5 # new regularization
 g_loss += g_loss_plus
 g_train_model.add_loss(K.mean(g_loss))
-g_train_model.compile(optimizer=Adam(2e-4, 0.5))
+g_train_model.compile(optimizer=opt)
 
 # 检查模型结构
 d_train_model.summary()

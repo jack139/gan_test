@@ -5,7 +5,7 @@ __pycache__
 *.json
 *.h5
 *.hdf5
-*.weights
+*.weights*
 .DS_Store
 *.gif
 
@@ -13,6 +13,6 @@ datasets/
 out/
 test/
 samples*/
-checkpoints/
+checkpoint*
 sample_images_while_training/
 summaries/
