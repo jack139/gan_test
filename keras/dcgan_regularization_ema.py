@@ -24,8 +24,8 @@ batch_size = 64
 iters_per_sample = 100 # 采样频率
 
 
-#img_dir = '/media/gt/_dde_data/Datasets/CASIA-maxpy-clean'
-img_dir = '../../datasets/CASIA-maxpy-clean'
+img_dir = '/media/gt/_dde_data/Datasets/CASIA-maxpy-clean'
+#img_dir = '../../datasets/CASIA-maxpy-clean'
 
 # 数据生成器
 img_datagen = ImageDataGenerator(
@@ -41,7 +41,7 @@ img_generator = img_datagen.flow_from_directory(
 
 
 # 载入基本模型： 判别器，生成器
-d_model, g_model = load_model(img_dim, z_dim, 'sigmoid')
+d_model, g_model = load_model(img_dim, z_dim, 'sigmoid', self_mode=True)
 d_model.summary()
 g_model.summary()
 
