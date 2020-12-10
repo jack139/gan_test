@@ -1,8 +1,19 @@
 #! -*- coding: utf-8 -*-
 
+import os
+from distutils.util import strtobool
+
+# 判断是tf.keras还是纯keras的标记
+is_tf_keras = strtobool(os.environ.get('TF_KERAS', '0'))
+
+if is_tf_keras:
+    from tensorflow.keras.layers import *
+    from tensorflow.keras.models import Model
+else:
+    from keras.layers import *
+    from keras.models import Model
+
 import numpy as np
-from keras.layers import *
-from keras.models import Model
 from utils import SpectralNormalization
 
 # 生成器和判别器 模型

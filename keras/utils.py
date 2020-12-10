@@ -1,7 +1,17 @@
 # coding=utf-8
 
+import os
+from distutils.util import strtobool
+
+# 判断是tf.keras还是纯keras的标记
+is_tf_keras = strtobool(os.environ.get('TF_KERAS', '0'))
+
+if is_tf_keras:
+    from tensorflow.keras import backend as K
+else:
+    from keras import backend as K
+
 import numpy as np
-from keras import backend as K
 import imageio
 
 
