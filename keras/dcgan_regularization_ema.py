@@ -23,6 +23,7 @@ if not os.path.exists('samples'):
 img_dim = 64
 z_dim = 100
 EMA = True # whether use EMA
+self_mode = True
 total_iter = 1000000
 batch_size = 64
 iters_per_sample = 100 # 采样频率
@@ -45,7 +46,7 @@ img_generator = img_datagen.flow_from_directory(
 
 
 # 载入基本模型： 判别器，生成器
-d_model, g_model = load_model(img_dim, z_dim, 'sigmoid', self_mode=True)
+d_model, g_model = load_model(img_dim, z_dim, 'sigmoid', self_mode=self_mode)
 d_model.summary()
 g_model.summary()
 
