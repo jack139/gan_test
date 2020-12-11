@@ -24,6 +24,7 @@ img_dim = 64
 z_dim = 100
 EMA = True # whether use EMA
 L1_or_L2 = 'L1' #  L1 或 L2
+self_mode = True
 total_iter = 1000000
 batch_size = 64
 iters_per_sample = 100 # 采样频率
@@ -46,7 +47,7 @@ img_generator = img_datagen.flow_from_directory(
 
 
 # 载入基本模型： 判别器，生成器
-d_model, g_model = load_model(img_dim, z_dim, use_bias=False)
+d_model, g_model = load_model(img_dim, z_dim, use_bias=False, self_mode=self_mode)
 d_model.summary()
 g_model.summary()
 
@@ -104,6 +105,12 @@ d_train_model.summary()
 g_train_model.summary()
 
 
+# 装入checkpoints， 只保存了生成模型的权重。 
+# ！！！！！要在EMA初始化前装入，同时初始化EMA的权重！！！！
+#g_train_model.load_weights('out/g_train_ema_model.weights')
+#g_model = g_train_model.layers[2]
+#d_model = g_train_model.layers[3]
+
 # EMA
 if EMA:
     EMAer_g_train = ExponentialMovingAverage(g_train_model, 0.999) # 在模型compile之后执行
@@ -112,8 +119,7 @@ if EMA:
 
 if __name__ == '__main__':
 
-    import json
-
+    # 训练
     n_size = 9
     Z = np.random.randn(n_size**2, z_dim)
 
